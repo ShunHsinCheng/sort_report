@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>排序法視覺化學習站</title>
+	<style>
+		:root {
+			--bg-a: #fdf6e3;
+			--bg-b: #dbeafe;
+			--card: #ffffff;
+			--ink: #1f2937;
+			--muted: #6b7280;
+			--accent: #0f766e;
+			--accent-2: #ea580c;
+			--good: #16a34a;
+			--warn: #dc2626;
+			--line: #e5e7eb;
+			--shadow: 0 12px 30px rgba(31, 41, 55, 0.12);
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+			color: var(--ink);
+			background:
+				radial-gradient(circle at 10% 10%, rgba(15, 118, 110, 0.14), transparent 35%),
+				radial-gradient(circle at 80% 0%, rgba(234, 88, 12, 0.14), transparent 30%),
+				linear-gradient(145deg, var(--bg-a), var(--bg-b));
+			min-height: 100vh;
+			animation: fadeIn 700ms ease-out;
+		}
+
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(6px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		.container {
+			width: min(1150px, 94vw);
+			margin: 28px auto 36px;
+			display: grid;
+			gap: 18px;
+		}
+
+		.hero {
+			background: linear-gradient(120deg, #ffffffee, #fff8f0ee);
+			border: 1px solid #ffffff;
+			border-radius: 20px;
+			padding: 22px;
+			box-shadow: var(--shadow);
+			overflow: hidden;
+			position: relative;
+		}
+
+		.hero::after {
+			content: "";
+			position: absolute;
+			width: 220px;
+			height: 220px;
+			border-radius: 50%;
+			right: -60px;
+			top: -80px;
+			background: radial-gradient(circle, rgba(15, 118, 110, 0.22), transparent 65%);
+		}
+
+		h1 {
+			margin: 0 0 8px;
+			font-size: clamp(1.5rem, 4vw, 2.2rem);
+			letter-spacing: 0.02em;
+		}
+
+		.subtitle {
+			margin: 0;
+			color: var(--muted);
+			line-height: 1.55;
+			max-width: 68ch;
+		}
+
+		.grid {
+			display: grid;
+			grid-template-columns: 1.05fr 1fr;
+			gap: 18px;
+		}
+
+		.panel {
+			background: var(--card);
+			border: 1px solid var(--line);
+			border-radius: 18px;
+			padding: 16px;
+			box-shadow: var(--shadow);
+		}
+
+		.controls {
+			display: grid;
+			gap: 12px;
+		}
+
+		.row {
+			display: grid;
+			gap: 8px;
+		}
+
+		.row label {
+			font-weight: 700;
+			font-size: 0.95rem;
+		}
+
+		select,
+		input[type="range"],
+		button {
+			width: 100%;
+		}
+
+		select,
+		input[type="range"] {
+			accent-color: var(--accent);
+		}
+
+		select {
+			border: 1px solid #cbd5e1;
+			border-radius: 10px;
+			padding: 9px 10px;
+			font-size: 1rem;
+			background: #fff;
+		}
+
+		.btns {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 8px;
+		}
+
+		button {
+			border: 0;
+			border-radius: 10px;
+			padding: 10px 12px;
+			font-weight: 700;
+			cursor: pointer;
+			transition: transform 120ms ease, filter 120ms ease;
+		}
+
+		button:hover { transform: translateY(-1px); }
+		button:active { transform: translateY(0); }
+		button:disabled { cursor: not-allowed; filter: grayscale(0.5); opacity: 0.6; }
+
+		.primary { background: var(--accent); color: #fff; }
+		.secondary { background: #0ea5e9; color: #fff; }
+		.danger { background: var(--accent-2); color: #fff; }
+
+		.stats {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 8px;
+			margin-top: 4px;
+		}
+
+		.stat {
+			border: 1px dashed #d1d5db;
+			border-radius: 10px;
+			padding: 10px;
+			background: #fcfcfc;
+		}
+
+		.stat b {
+			display: block;
+			font-size: 1.15rem;
+			margin-top: 2px;
+		}
+
+		.algo-card h2,
+		.viz-card h2 {
+			margin: 0 0 8px;
+			font-size: 1.12rem;
+		}
+
+		.algo-detail {
+			margin: 0;
+			color: #374151;
+			line-height: 1.6;
+			min-height: 4.8em;
+		}
+
+		.badge {
+			display: inline-block;
+			margin-top: 10px;
+			background: #ecfeff;
+			color: #155e75;
+			border: 1px solid #bae6fd;
+			border-radius: 999px;
+			padding: 5px 11px;
+			font-size: 0.84rem;
+			font-weight: 700;
+		}
+
+		.viz {
+			height: 360px;
+			border-radius: 14px;
+			border: 1px solid #e2e8f0;
+			background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+			padding: 10px;
+			display: flex;
+			align-items: end;
+			gap: 4px;
+			overflow: hidden;
+		}
+
+		.bar {
+			flex: 1;
+			border-radius: 6px 6px 0 0;
+			background: linear-gradient(180deg, #2dd4bf, #0f766e);
+			transition: height 140ms linear, background-color 120ms linear, transform 120ms linear;
+			min-width: 3px;
+		}
+
+		.bar.active {
+			background: linear-gradient(180deg, #fb7185, #e11d48);
+			transform: translateY(-2px);
+		}
+
+		.bar.swap {
+			background: linear-gradient(180deg, #facc15, #ca8a04);
+		}
+
+		.bar.sorted {
+			background: linear-gradient(180deg, #4ade80, #15803d);
+		}
+
+		.legend {
+			margin-top: 10px;
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			font-size: 0.88rem;
+			color: #374151;
+		}
+
+		.dot {
+			width: 10px;
+			height: 10px;
+			border-radius: 50%;
+			display: inline-block;
+			margin-right: 6px;
+			vertical-align: middle;
+		}
+
+		.pseudocode {
+			margin-top: 12px;
+			border: 1px solid #e5e7eb;
+			background: #f9fafb;
+			border-radius: 10px;
+			padding: 10px;
+			font-family: "Consolas", "Courier New", monospace;
+			font-size: 0.86rem;
+			white-space: pre-wrap;
+			line-height: 1.45;
+			color: #374151;
+		}
+
+		.status {
+			margin-top: 10px;
+			font-weight: 700;
+			min-height: 1.4em;
+		}
+
+		.ok { color: var(--good); }
+		.busy { color: #0369a1; }
+		.err { color: var(--warn); }
+
+		@media (max-width: 900px) {
+			.grid {
+				grid-template-columns: 1fr;
+			}
+			.viz {
+				height: 300px;
+			}
+		}
+	</style>
+</head>
+<body>
+	<main class="container">
+		<section class="hero">
+			<h1>排序法介紹：即時動畫學習站</h1>
+			<p class="subtitle">
+				觀察資料如何一步步變成有序，理解比較與交換背後的邏輯。你可以切換演算法、調整速度與資料量，並在畫面中即時看到每一步的變化。
+			</p>
+		</section>
+
+		<section class="grid">
+			<article class="panel algo-card">
+				<h2>演算法與控制面板</h2>
+				<div class="controls">
+					<div class="row">
+						<label for="algoSelect">排序法</label>
+						<select id="algoSelect" aria-label="選擇排序法">
+							<option value="bubble">泡沫排序 Bubble Sort</option>
+							<option value="selection">選擇排序 Selection Sort</option>
+							<option value="insertion">插入排序 Insertion Sort</option>
+							<option value="quick">快速排序 Quick Sort</option>
+						</select>
+					</div>
+
+					<div class="row">
+						<label for="sizeRange">資料量：<span id="sizeVal">32</span></label>
+						<input id="sizeRange" type="range" min="12" max="70" value="32" />
+					</div>
+
+					<div class="row">
+						<label for="speedRange">動畫速度：<span id="speedVal">45</span> ms/步</label>
+						<input id="speedRange" type="range" min="5" max="120" value="45" />
+					</div>
+
+					<div class="btns">
+						<button id="startBtn" class="primary">開始排序</button>
+						<button id="shuffleBtn" class="secondary">重新洗牌</button>
+						<button id="stopBtn" class="danger">停止</button>
+					</div>
+
+					<div class="stats" aria-live="polite">
+						<div class="stat">比較次數<b id="cmpCount">0</b></div>
+						<div class="stat">交換次數<b id="swapCount">0</b></div>
+						<div class="stat">目前步數<b id="stepCount">0</b></div>
+					</div>
+				</div>
+
+				<p id="algoDetail" class="algo-detail"></p>
+				<span id="complexityBadge" class="badge"></span>
+				<div id="pseudoCode" class="pseudocode"></div>
+				<div id="status" class="status">已就緒，請開始排序。</div>
+			</article>
+
+			<article class="panel viz-card">
+				<h2>即時圖像輔助</h2>
+				<div id="viz" class="viz" aria-label="排序動畫視覺化區域"></div>
+				<div class="legend">
+					<span><i class="dot" style="background:#0f766e"></i>一般資料</span>
+					<span><i class="dot" style="background:#e11d48"></i>目前比較</span>
+					<span><i class="dot" style="background:#ca8a04"></i>交換中</span>
+					<span><i class="dot" style="background:#15803d"></i>已排序</span>
+				</div>
+			</article>
+		</section>
+	</main>
+
+	<script>
+		const algoMeta = {
+			bubble: {
+				title: "泡沫排序",
+				detail: "重複比較相鄰元素，若順序錯誤就交換，較大的值像氣泡一樣往後浮。",
+				complexity: "平均時間複雜度: O(n^2) | 空間複雜度: O(1)",
+				pseudo: [
+					"for i = 0 to n-2:",
+					"  for j = 0 to n-i-2:",
+					"    if A[j] > A[j+1]:",
+					"      swap(A[j], A[j+1])"
+				]
+			},
+			selection: {
+				title: "選擇排序",
+				detail: "每一輪從未排序區間找最小值，放到最前面，逐步擴大已排序區。",
+				complexity: "平均時間複雜度: O(n^2) | 空間複雜度: O(1)",
+				pseudo: [
+					"for i = 0 to n-1:",
+					"  minIdx = i",
+					"  for j = i+1 to n-1:",
+					"    if A[j] < A[minIdx]: minIdx = j",
+					"  swap(A[i], A[minIdx])"
+				]
+			},
+			insertion: {
+				title: "插入排序",
+				detail: "把每個新元素插入前方已排序區的正確位置，小規模資料常有不錯效率。",
+				complexity: "平均時間複雜度: O(n^2) | 空間複雜度: O(1)",
+				pseudo: [
+					"for i = 1 to n-1:",
+					"  key = A[i]",
+					"  j = i - 1",
+					"  while j >= 0 and A[j] > key:",
+					"    A[j+1] = A[j]; j--",
+					"  A[j+1] = key"
+				]
+			},
+			quick: {
+				title: "快速排序",
+				detail: "選定樞紐值分割資料，小於樞紐放左邊，大於放右邊，再遞迴排序。",
+				complexity: "平均時間複雜度: O(n log n) | 最壞: O(n^2) | 空間: O(log n)",
+				pseudo: [
+					"quickSort(A, l, r):",
+					"  if l >= r: return",
+					"  pivot = partition(A, l, r)",
+					"  quickSort(A, l, pivot-1)",
+					"  quickSort(A, pivot+1, r)"
+				]
+			}
+		};
+
+		const viz = document.getElementById("viz");
+		const algoSelect = document.getElementById("algoSelect");
+		const sizeRange = document.getElementById("sizeRange");
+		const speedRange = document.getElementById("speedRange");
+		const sizeVal = document.getElementById("sizeVal");
+		const speedVal = document.getElementById("speedVal");
+		const startBtn = document.getElementById("startBtn");
+		const shuffleBtn = document.getElementById("shuffleBtn");
+		const stopBtn = document.getElementById("stopBtn");
+		const cmpCount = document.getElementById("cmpCount");
+		const swapCount = document.getElementById("swapCount");
+		const stepCount = document.getElementById("stepCount");
+		const algoDetail = document.getElementById("algoDetail");
+		const complexityBadge = document.getElementById("complexityBadge");
+		const pseudoCode = document.getElementById("pseudoCode");
+		const statusText = document.getElementById("status");
+
+		let values = [];
+		let running = false;
+		let stopRequested = false;
+		let comparisons = 0;
+		let swaps = 0;
+		let steps = 0;
+
+		function randValues(n) {
+			const arr = [];
+			for (let i = 0; i < n; i++) {
+				arr.push(Math.floor(Math.random() * 95) + 5);
+			}
+			return arr;
+		}
+
+		function setStatus(msg, cls = "") {
+			statusText.textContent = msg;
+			statusText.className = "status" + (cls ? " " + cls : "");
+		}
+
+		function resetStats() {
+			comparisons = 0;
+			swaps = 0;
+			steps = 0;
+			updateStats();
+		}
+
+		function updateStats() {
+			cmpCount.textContent = comparisons;
+			swapCount.textContent = swaps;
+			stepCount.textContent = steps;
+		}
+
+		function renderBars(active = [], swapping = [], sorted = new Set()) {
+			viz.innerHTML = "";
+			const max = Math.max(...values, 1);
+			values.forEach((v, i) => {
+				const bar = document.createElement("div");
+				bar.className = "bar";
+				bar.style.height = (v / max) * 100 + "%";
+				if (active.includes(i)) bar.classList.add("active");
+				if (swapping.includes(i)) bar.classList.add("swap");
+				if (sorted.has(i)) bar.classList.add("sorted");
+				viz.appendChild(bar);
+			});
+		}
+
+		function sleep(ms) {
+			return new Promise(resolve => setTimeout(resolve, ms));
+		}
+
+		function currentDelay() {
+			return Number(speedRange.value);
+		}
+
+		async function drawStep(active = [], swapping = [], sorted = new Set()) {
+			if (stopRequested) throw new Error("stopped");
+			steps++;
+			updateStats();
+			renderBars(active, swapping, sorted);
+			await sleep(currentDelay());
+		}
+
+		function swap(i, j) {
+			[values[i], values[j]] = [values[j], values[i]];
+			swaps++;
+		}
+
+		async function bubbleSort() {
+			const sorted = new Set();
+			for (let i = 0; i < values.length - 1; i++) {
+				for (let j = 0; j < values.length - i - 1; j++) {
+					comparisons++;
+					await drawStep([j, j + 1], [], sorted);
+					if (values[j] > values[j + 1]) {
+						swap(j, j + 1);
+						await drawStep([j, j + 1], [j, j + 1], sorted);
+					}
+				}
+				sorted.add(values.length - 1 - i);
+			}
+			for (let k = 0; k < values.length; k++) sorted.add(k);
+			renderBars([], [], sorted);
+		}
+
+		async function selectionSort() {
+			const sorted = new Set();
+			for (let i = 0; i < values.length - 1; i++) {
+				let minIdx = i;
+				for (let j = i + 1; j < values.length; j++) {
+					comparisons++;
+					await drawStep([minIdx, j], [], sorted);
+					if (values[j] < values[minIdx]) {
+						minIdx = j;
+						await drawStep([minIdx, i], [], sorted);
+					}
+				}
+				if (minIdx !== i) {
+					swap(i, minIdx);
+					await drawStep([i, minIdx], [i, minIdx], sorted);
+				}
+				sorted.add(i);
+			}
+			sorted.add(values.length - 1);
+			renderBars([], [], sorted);
+		}
+
+		async function insertionSort() {
+			const sorted = new Set([0]);
+			for (let i = 1; i < values.length; i++) {
+				const key = values[i];
+				let j = i - 1;
+				while (j >= 0) {
+					comparisons++;
+					await drawStep([j, j + 1], [], sorted);
+					if (values[j] > key) {
+						values[j + 1] = values[j];
+						swaps++;
+						await drawStep([j, j + 1], [j, j + 1], sorted);
+						j--;
+					} else {
+						break;
+					}
+				}
+				values[j + 1] = key;
+				sorted.clear();
+				for (let k = 0; k <= i; k++) sorted.add(k);
+				await drawStep([j + 1], [], sorted);
+			}
+			for (let k = 0; k < values.length; k++) sorted.add(k);
+			renderBars([], [], sorted);
+		}
+
+		async function quickSortWrapper() {
+			const sorted = new Set();
+
+			async function partition(low, high) {
+				const pivot = values[high];
+				let i = low - 1;
+				for (let j = low; j < high; j++) {
+					comparisons++;
+					await drawStep([j, high], [], sorted);
+					if (values[j] < pivot) {
+						i++;
+						if (i !== j) {
+							swap(i, j);
+							await drawStep([i, j], [i, j], sorted);
+						}
+					}
+				}
+				if (i + 1 !== high) {
+					swap(i + 1, high);
+					await drawStep([i + 1, high], [i + 1, high], sorted);
+				}
+				sorted.add(i + 1);
+				return i + 1;
+			}
+
+			async function quickSort(low, high) {
+				if (low >= high) {
+					if (low === high) sorted.add(low);
+					return;
+				}
+				const pi = await partition(low, high);
+				await quickSort(low, pi - 1);
+				await quickSort(pi + 1, high);
+			}
+
+			await quickSort(0, values.length - 1);
+			for (let k = 0; k < values.length; k++) sorted.add(k);
+			renderBars([], [], sorted);
+		}
+
+		function updateAlgoInfo() {
+			const m = algoMeta[algoSelect.value];
+			algoDetail.textContent = m.title + "：" + m.detail;
+			complexityBadge.textContent = m.complexity;
+			pseudoCode.textContent = m.pseudo.join("\n");
+		}
+
+		function randomizeData() {
+			values = randValues(Number(sizeRange.value));
+			resetStats();
+			renderBars();
+			setStatus("資料已重新洗牌，準備開始。", "ok");
+		}
+
+		async function startSort() {
+			if (running) return;
+			running = true;
+			stopRequested = false;
+			startBtn.disabled = true;
+			shuffleBtn.disabled = true;
+			setStatus("排序進行中...", "busy");
+
+			try {
+				if (algoSelect.value === "bubble") await bubbleSort();
+				if (algoSelect.value === "selection") await selectionSort();
+				if (algoSelect.value === "insertion") await insertionSort();
+				if (algoSelect.value === "quick") await quickSortWrapper();
+				if (!stopRequested) setStatus("排序完成！", "ok");
+			} catch (err) {
+				if (String(err && err.message) === "stopped") {
+					setStatus("已停止排序。", "err");
+				} else {
+					setStatus("發生錯誤，請重試。", "err");
+				}
+			} finally {
+				running = false;
+				startBtn.disabled = false;
+				shuffleBtn.disabled = false;
+			}
+		}
+
+		algoSelect.addEventListener("change", () => {
+			updateAlgoInfo();
+			if (!running) setStatus("已切換排序法。", "ok");
+		});
+
+		sizeRange.addEventListener("input", () => {
+			sizeVal.textContent = sizeRange.value;
+			if (!running) randomizeData();
+		});
+
+		speedRange.addEventListener("input", () => {
+			speedVal.textContent = speedRange.value;
+		});
+
+		startBtn.addEventListener("click", startSort);
+		shuffleBtn.addEventListener("click", () => {
+			if (!running) randomizeData();
+		});
+		stopBtn.addEventListener("click", () => {
+			if (running) stopRequested = true;
+			else setStatus("目前沒有進行中的排序。", "err");
+		});
+
+		updateAlgoInfo();
+		sizeVal.textContent = sizeRange.value;
+		speedVal.textContent = speedRange.value;
+		randomizeData();
+	</script>
+</body>
+</html>
