@@ -1,0 +1,1181 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>排序法視覺化學習站</title>
+	<style>
+		:root {
+			--bg-a: #fdf6e3;
+			--bg-b: #dbeafe;
+			--card: #ffffff;
+			--ink: #1f2937;
+			--muted: #6b7280;
+			--accent: #0f766e;
+			--accent-2: #ea580c;
+			--good: #16a34a;
+			--warn: #dc2626;
+			--line: #e5e7eb;
+			--shadow: 0 12px 30px rgba(31, 41, 55, 0.12);
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+			color: var(--ink);
+			background:
+				radial-gradient(circle at 10% 10%, rgba(15, 118, 110, 0.14), transparent 35%),
+				radial-gradient(circle at 80% 0%, rgba(234, 88, 12, 0.14), transparent 30%),
+				linear-gradient(145deg, var(--bg-a), var(--bg-b));
+			min-height: 100vh;
+			animation: fadeIn 700ms ease-out;
+		}
+
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(6px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		.container {
+			width: min(1150px, 94vw);
+			margin: 28px auto 36px;
+			display: grid;
+			gap: 18px;
+		}
+
+		.hero {
+			background: linear-gradient(120deg, #ffffffee, #fff8f0ee);
+			border: 1px solid #ffffff;
+			border-radius: 20px;
+			padding: 22px;
+			box-shadow: var(--shadow);
+			overflow: hidden;
+			position: relative;
+		}
+
+		.hero::after {
+			content: "";
+			position: absolute;
+			width: 220px;
+			height: 220px;
+			border-radius: 50%;
+			right: -60px;
+			top: -80px;
+			background: radial-gradient(circle, rgba(15, 118, 110, 0.22), transparent 65%);
+		}
+
+		h1 {
+			margin: 0 0 8px;
+			font-size: clamp(1.5rem, 4vw, 2.2rem);
+			letter-spacing: 0.02em;
+		}
+
+		.subtitle {
+			margin: 0;
+			color: var(--muted);
+			line-height: 1.55;
+			max-width: 68ch;
+		}
+
+		.home-link {
+			position: fixed;
+			top: 14px;
+			right: 14px;
+			z-index: 1000;
+			display: inline-block;
+			padding: 8px 14px;
+			border-radius: 999px;
+			background: #0f766e;
+			color: #ffffff;
+			text-decoration: none;
+			font-weight: 700;
+			font-size: 0.9rem;
+			transition: background 120ms ease, transform 120ms ease;
+		}
+
+		.home-link:hover {
+			background: #115e59;
+			transform: translateY(-1px);
+		}
+
+		.grid {
+			display: grid;
+			grid-template-columns: 1.05fr 1fr;
+			gap: 18px;
+		}
+
+		.right-stack {
+			display: grid;
+			gap: 18px;
+			align-content: start;
+		}
+
+		.complexity-card {
+			grid-column: 1 / -1;
+		}
+
+		.panel {
+			background: var(--card);
+			border: 1px solid var(--line);
+			border-radius: 18px;
+			padding: 24px;
+			box-shadow: var(--shadow);
+		}
+
+		.controls {
+			display: grid;
+			gap: 20px;
+		}
+
+		.row {
+			display: grid;
+			gap: 12px;
+			padding: 14px 14px;
+			border: 1px solid #eef2f7;
+			border-radius: 12px;
+			background: #fbfdff;
+		}
+
+		.row label {
+			font-weight: 700;
+			font-size: 0.95rem;
+		}
+
+		#manualInput {
+			border: 1px solid #cbd5e1;
+			border-radius: 10px;
+			padding: 12px 13px;
+			font-size: 0.95rem;
+			background: #fff;
+		}
+
+		.input-hint {
+			margin: 2px 0 0;
+			font-size: 0.82rem;
+			color: #64748b;
+		}
+
+		select,
+		input[type="range"],
+		button {
+			width: 100%;
+		}
+
+		select,
+		input[type="range"] {
+			accent-color: var(--accent);
+		}
+
+		select {
+			border: 1px solid #cbd5e1;
+			border-radius: 10px;
+			padding: 12px 13px;
+			font-size: 1rem;
+			background: #fff;
+		}
+
+		.btns {
+			display: grid;
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+			gap: 12px;
+		}
+
+		.inline-btns {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 12px;
+		}
+
+		button {
+			border: 0;
+			border-radius: 10px;
+			padding: 13px 13px;
+			font-weight: 700;
+			cursor: pointer;
+			transition: transform 120ms ease, filter 120ms ease;
+		}
+
+		button:hover { transform: translateY(-1px); }
+		button:active { transform: translateY(0); }
+		button:disabled { cursor: not-allowed; filter: grayscale(0.5); opacity: 0.6; }
+
+		.primary { background: var(--accent); color: #fff; }
+		.secondary { background: #0ea5e9; color: #fff; }
+		.danger { background: var(--accent-2); color: #fff; }
+
+		.stats {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 12px;
+			margin-top: 8px;
+		}
+
+		.stat {
+			border: 1px dashed #d1d5db;
+			border-radius: 10px;
+			padding: 14px;
+			background: #fcfcfc;
+		}
+
+		.stat b {
+			display: block;
+			font-size: 1.15rem;
+			margin-top: 2px;
+		}
+
+		.table-wrap {
+			margin-top: 14px;
+			border: 1px solid #e2e8f0;
+			border-radius: 12px;
+			background: #ffffff;
+			overflow: hidden;
+		}
+
+		table {
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 0.95rem;
+		}
+
+		thead th {
+			background: #f1f5f9;
+			font-weight: 700;
+			font-size: 0.92rem;
+			letter-spacing: 0.02em;
+		}
+
+		th,
+		td {
+			border-bottom: 1px solid #e5e7eb;
+			padding: 8px 10px;
+			text-align: left;
+			white-space: normal;
+			word-break: break-word;
+			vertical-align: top;
+		}
+
+		tbody tr:last-child td {
+			border-bottom: 0;
+		}
+
+		tbody tr.is-selected {
+			background: #ecfeff;
+		}
+
+		tbody td:first-child {
+			width: 24%;
+			font-weight: 700;
+			background: #f8fafc;
+		}
+
+		tbody td:nth-child(2) {
+			width: 24%;
+		}
+
+		.metric-value {
+			display: block;
+			font-weight: 700;
+			color: #0f172a;
+			margin-bottom: 0;
+		}
+
+		.metric-note {
+			display: block;
+			color: #475569;
+			line-height: 1.55;
+		}
+
+		.algo-card h2,
+		.viz-card h2 {
+			margin: 0 0 8px;
+			font-size: 1.12rem;
+		}
+
+		.algo-detail {
+			margin: 0;
+			color: #374151;
+			line-height: 1.6;
+			padding: 10px 12px;
+			border-radius: 10px;
+			background: #f8fafc;
+			border: 1px solid #e2e8f0;
+		}
+
+		.badge {
+			display: inline-block;
+			margin-top: 10px;
+			background: #ecfeff;
+			color: #155e75;
+			border: 1px solid #bae6fd;
+			border-radius: 999px;
+			padding: 5px 11px;
+			font-size: 0.84rem;
+			font-weight: 700;
+		}
+
+		.viz {
+			height: 360px;
+			border-radius: 14px;
+			border: 1px solid #e2e8f0;
+			background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+			padding: 10px;
+			display: flex;
+			align-items: end;
+			gap: 4px;
+			overflow: hidden;
+		}
+
+		.bar {
+			flex: 1;
+			border-radius: 6px 6px 0 0;
+			background: linear-gradient(180deg, #2dd4bf, #0f766e);
+			transition: height 140ms linear, background-color 120ms linear, transform 120ms linear;
+			min-width: 3px;
+		}
+
+		.bar.active {
+			background: linear-gradient(180deg, #fb7185, #e11d48);
+			transform: translateY(-2px);
+		}
+
+		.bar.swap {
+			background: linear-gradient(180deg, #facc15, #ca8a04);
+		}
+
+		.bar.sorted {
+			background: linear-gradient(180deg, #4ade80, #15803d);
+		}
+
+		.legend {
+			margin-top: 10px;
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			font-size: 0.88rem;
+			color: #374151;
+		}
+
+		.dot {
+			width: 10px;
+			height: 10px;
+			border-radius: 50%;
+			display: inline-block;
+			margin-right: 6px;
+			vertical-align: middle;
+		}
+
+		.pseudocode {
+			margin-top: 12px;
+			border: 1px solid #e5e7eb;
+			background: #f9fafb;
+			border-radius: 10px;
+			padding: 10px;
+			font-family: "Consolas", "Courier New", monospace;
+			font-size: 0.86rem;
+			line-height: 1.5;
+			color: #374151;
+		}
+
+		.code-title {
+			margin: 0 0 6px;
+			font-size: 0.98rem;
+		}
+
+		.code-line {
+			display: block;
+			padding: 2px 8px;
+			border-radius: 6px;
+			white-space: pre;
+		}
+
+		.code-line.active {
+			background: #fee2e2;
+			color: #991b1b;
+			font-weight: 700;
+		}
+
+		.trace-box {
+			margin-top: 10px;
+			border: 1px dashed #cbd5e1;
+			border-radius: 10px;
+			padding: 10px;
+			background: #fcfcfd;
+		}
+
+		.trace-box h4 {
+			margin: 0 0 8px;
+			font-size: 0.92rem;
+		}
+
+		.trace-grid {
+			display: grid;
+			grid-template-columns: 1fr;
+			gap: 6px;
+			font-size: 0.85rem;
+		}
+
+		.trace-item {
+			display: grid;
+			grid-template-columns: 86px 1fr;
+			align-items: start;
+			gap: 8px;
+			padding: 7px 8px;
+			border-radius: 8px;
+			background: #f1f5f9;
+		}
+
+		.trace-item b {
+			display: inline;
+			font-size: 0.8rem;
+			color: #475569;
+			margin: 0;
+		}
+
+		.trace-detail {
+			display: block;
+			font-size: 0.85rem;
+			color: #334155;
+			line-height: 1.45;
+			min-height: 1.45em;
+			white-space: normal;
+			word-break: break-word;
+		}
+
+		.status {
+			margin-top: 10px;
+			font-weight: 700;
+			min-height: 1.4em;
+		}
+
+		.ok { color: var(--good); }
+		.busy { color: #0369a1; }
+		.err { color: var(--warn); }
+
+		@media (max-width: 900px) {
+			.grid {
+				grid-template-columns: 1fr;
+			}
+			.stats {
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+			}
+			.viz {
+				height: 250px;
+			}
+			.home-link {
+				top: 10px;
+				right: 10px;
+				padding: 7px 12px;
+				font-size: 0.84rem;
+			}
+		}
+	</style>
+</head>
+<body>
+	<a class="home-link" href="index.html">回首頁</a>
+	<main class="container">
+		<section class="hero">
+			<h1>排序法介紹：即時動畫學習站</h1>
+			<p class="subtitle">
+				觀察資料如何一步步變成有序，理解比較與交換背後的邏輯。你可以切換演算法、調整速度與資料量，並在畫面中即時看到每一步的變化。
+			</p>
+		</section>
+
+		<section class="grid">
+			<article class="panel algo-card">
+				<h2>演算法與控制面板</h2>
+				<div class="controls">
+					<div class="row">
+						<label>排序法</label>
+						<select id="sortPageSelect" aria-label="選擇排序法頁面">
+							<option value="bubble">泡沫排序 Bubble Sort</option>
+							<option value="selection">選擇排序 Selection Sort</option>
+							<option value="insertion" selected>插入排序 Insertion Sort</option>
+							<option value="quick">快速排序 Quick Sort</option>
+						</select>
+					</div>
+
+					<p id="algoDetail" class="algo-detail"></p>
+
+					<div class="row">
+						<label for="manualInput">自訂數字輸入</label>
+						<input id="manualInput" type="text" placeholder="例如：35, 12, 88, 7, 42" aria-label="輸入排序數字" />
+						<p class="input-hint">可用逗號或空白分隔。輸入後按「套用數字」。</p>
+						<div class="inline-btns">
+							<button id="applyInputBtn" class="secondary" type="button">套用數字</button>
+							<button id="randomInputBtn" class="secondary" type="button">隨機數字</button>
+						</div>
+					</div>
+
+					<div class="row">
+						<label for="sizeRange">資料量：<span id="sizeVal">32</span></label>
+						<input id="sizeRange" type="range" min="12" max="70" value="32" />
+					</div>
+
+					<div class="row">
+						<label for="speedRange">動畫速度：<span id="speedVal">45</span> ms/步</label>
+						<input id="speedRange" type="range" min="5" max="120" value="45" />
+					</div>
+
+					<div class="btns">
+						<button id="startBtn" class="primary">開始排序</button>
+						<button id="stepBtn" class="secondary">單步執行</button>
+						<button id="shuffleBtn" class="secondary">重新洗牌</button>
+						<button id="stopBtn" class="danger">停止</button>
+					</div>
+
+					<div class="stats" aria-live="polite">
+						<div class="stat">比較次數<b id="cmpCount">0</b></div>
+						<div class="stat">交換次數<b id="swapCount">0</b></div>
+						<div class="stat">目前步數<b id="stepCount">0</b></div>
+					</div>
+				</div>
+
+				<div id="status" class="status">已就緒，請開始排序。</div>
+			</article>
+
+			<div class="right-stack">
+				<article class="panel viz-card">
+					<h2>即時圖像輔助</h2>
+					<div id="viz" class="viz" aria-label="排序動畫視覺化區域"></div>
+					<div class="legend">
+						<span><i class="dot" style="background:#0f766e"></i>一般資料</span>
+						<span><i class="dot" style="background:#e11d48"></i>目前比較</span>
+						<span><i class="dot" style="background:#ca8a04"></i>交換中</span>
+						<span><i class="dot" style="background:#15803d"></i>已排序</span>
+					</div>
+				</article>
+
+				<article class="panel code-card">
+					<h3 class="code-title">程式碼追蹤</h3>
+					<div id="pseudoCode" class="pseudocode" aria-label="程式碼追蹤區塊"></div>
+					<div class="trace-box" aria-live="polite">
+						<h4>即時追蹤資訊</h4>
+						<div class="trace-grid">
+							<div class="trace-item"><b>目前行號</b><span id="traceLine">-</span></div>
+							<div class="trace-item"><b>動作</b><span id="traceAction">待命中</span></div>
+							<div class="trace-item"><b>目前語句</b><span id="traceCode">-</span></div>
+							<div class="trace-item"><b>說明</b><span id="traceDetail" class="trace-detail">按下開始排序後，這裡會顯示目前步驟說明。</span></div>
+						</div>
+					</div>
+				</article>
+			</div>
+		</section>
+
+		<article class="panel complexity-card">
+			<h2>複雜度與特性表</h2>
+			<div class="table-wrap" aria-label="排序法比較表格">
+				<table>
+					<thead>
+						<tr>
+							<th>項目</th>
+							<th>複雜度數值</th>
+							<th>說明</th>
+						</tr>
+					</thead>
+					<tbody id="complexityTableBody"></tbody>
+				</table>
+			</div>
+		</article>
+	</main>
+
+	<script>
+		const algoMeta = {
+			bubble: {
+				title: "泡沫排序",
+				detail: "重複比較相鄰元素，若順序錯誤就交換，較大的值像氣泡一樣往後浮。",
+				best: "O(n)",
+				bestExplain: "當資料本來就接近排序完成，內層比較幾乎不需要交換，整體只要線性掃描。",
+				average: "O(n²)",
+				averageExplain: "一般亂序資料下，需要多輪比較與交換，操作次數約為 n² 級別。",
+				worst: "O(n²)",
+				worstExplain: "完全反序時，每一輪都會發生大量交換，導致比較與移動都接近最大值。",
+				timeComplexity: "最佳 O(n) / 平均 O(n²) / 最壞 O(n²)",
+				timeComplexityExplain: "泡沫排序的主成本來自相鄰比較；資料越亂，重複掃描的輪數越多。",
+				space: "O(1)",
+				spaceExplain: "只使用少量暫存變數做交換，不需要額外陣列。",
+				stable: "穩定",
+				stableExplain: "相同數值在交換規則下不會改變彼此先後順序，因此保留原始相對次序。",
+				timeNote: "幾乎排序耗時較少，完全亂序則效率很差。",
+				timeNoteExplain: "若加上提早結束判斷，遇到無交換的一輪即可停止，實務效能會更好。",
+				pseudo: [
+					"for i = 0 to n-2:",
+					"  for j = 0 to n-i-2:",
+					"    if A[j] > A[j+1]:",
+					"      swap(A[j], A[j+1])"
+				]
+			},
+			selection: {
+				title: "選擇排序",
+				detail: "每一輪從未排序區間找最小值，放到最前面，逐步擴大已排序區。",
+				best: "O(n²)",
+				average: "O(n²)",
+				worst: "O(n²)",
+				timeComplexity: "最佳 O(n²) / 平均 O(n²) / 最壞 O(n²)",
+				space: "O(1)",
+				stable: "不穩定",
+				timeNote: "比較次數固定，資料分布影響小",
+				pseudo: [
+					"for i = 0 to n-1:",
+					"  minIdx = i",
+					"  for j = i+1 to n-1:",
+					"    if A[j] < A[minIdx]: minIdx = j",
+					"  swap(A[i], A[minIdx])"
+				]
+			},
+			insertion: {
+				title: "插入排序",
+				detail: "把每個新元素插入前方已排序區的正確位置，小規模資料常有不錯效率。",
+				best: "O(n)",
+				average: "O(n²)",
+				worst: "O(n²)",
+				timeComplexity: "最佳 O(n) / 平均 O(n²) / 最壞 O(n²)",
+				space: "O(1)",
+				stable: "穩定",
+				timeNote: "小型或近乎有序資料表現佳",
+				pseudo: [
+					"for i = 1 to n-1:",
+					"  key = A[i]",
+					"  j = i - 1",
+					"  while j >= 0 and A[j] > key:",
+					"    A[j+1] = A[j]; j--",
+					"  A[j+1] = key"
+				]
+			},
+			quick: {
+				title: "快速排序",
+				detail: "選定樞紐值分割資料，小於樞紐放左邊，大於放右邊，再遞迴排序。",
+				best: "O(n log n)",
+				average: "O(n log n)",
+				worst: "O(n²)",
+				timeComplexity: "最佳 O(n log n) / 平均 O(n log n) / 最壞 O(n²)",
+				space: "O(log n)",
+				stable: "不穩定",
+				timeNote: "平均很快，樞紐選擇會影響結果",
+				pseudo: [
+					"quickSort(A, l, r):",
+					"  if l >= r: return",
+					"  pivot = partition(A, l, r)",
+					"  quickSort(A, l, pivot-1)",
+					"  quickSort(A, pivot+1, r)"
+				]
+			}
+		};
+
+		const CURRENT_ALGO = "insertion";
+		const viz = document.getElementById("viz");
+		const sizeRange = document.getElementById("sizeRange");
+		const speedRange = document.getElementById("speedRange");
+		const sortPageSelect = document.getElementById("sortPageSelect");
+		const manualInput = document.getElementById("manualInput");
+		const applyInputBtn = document.getElementById("applyInputBtn");
+		const randomInputBtn = document.getElementById("randomInputBtn");
+		const sizeVal = document.getElementById("sizeVal");
+		const speedVal = document.getElementById("speedVal");
+		const startBtn = document.getElementById("startBtn");
+		const stepBtn = document.getElementById("stepBtn");
+		const shuffleBtn = document.getElementById("shuffleBtn");
+		const stopBtn = document.getElementById("stopBtn");
+		const cmpCount = document.getElementById("cmpCount");
+		const swapCount = document.getElementById("swapCount");
+		const stepCount = document.getElementById("stepCount");
+		const algoDetail = document.getElementById("algoDetail");
+		const complexityTableBody = document.getElementById("complexityTableBody");
+		const pseudoCode = document.getElementById("pseudoCode");
+		const traceLine = document.getElementById("traceLine");
+		const traceAction = document.getElementById("traceAction");
+		const traceCode = document.getElementById("traceCode");
+		const traceDetail = document.getElementById("traceDetail");
+		const statusText = document.getElementById("status");
+
+		let values = [];
+		let running = false;
+		let stopRequested = false;
+		let terminateRequested = false;
+		let stepMode = false;
+		let stepTokens = 0;
+		let stepWaitResolver = null;
+		let sortCompleted = false;
+		let comparisons = 0;
+		let swaps = 0;
+		let steps = 0;
+
+		function randValues(n) {
+			const arr = [];
+			for (let i = 0; i < n; i++) {
+				arr.push(Math.floor(Math.random() * 95) + 5);
+			}
+			return arr;
+		}
+
+		function setStatus(msg, cls = "") {
+			statusText.textContent = msg;
+			statusText.className = "status" + (cls ? " " + cls : "");
+		}
+
+		function resetStats() {
+			comparisons = 0;
+			swaps = 0;
+			steps = 0;
+			updateStats();
+		}
+
+		function updateStats() {
+			cmpCount.textContent = comparisons;
+			swapCount.textContent = swaps;
+			stepCount.textContent = steps;
+		}
+
+		function renderComplexityTable() {
+			const m = algoMeta[CURRENT_ALGO];
+			const rows = [
+				{ label: "最佳情況", value: m.best, note: m.bestExplain || "資料幾乎有序時，所需比較與交換次數最少。" },
+				{ label: "平均情況", value: m.average, note: m.averageExplain || "一般亂序資料下常見的平均成本。" },
+				{ label: "最壞情況", value: m.worst, note: m.worstExplain || "資料分布最不利時的最大成本。" },
+				{ label: "時間複雜度", value: m.timeComplexity, note: m.timeComplexityExplain || "描述演算法在不同情況下，操作次數隨資料量成長的速度。" },
+				{ label: "空間複雜度", value: m.space, note: m.spaceExplain || "表示演算法額外需要的記憶體用量。" },
+				{ label: "穩定性", value: m.stable, note: m.stableExplain || "穩定代表相同值的元素在排序後仍維持原本先後順序。" },
+				{ label: "時間特性", value: m.timeNote, note: m.timeNoteExplain || "補充此演算法在實務中的效能特徵。" }
+			];
+
+			complexityTableBody.innerHTML = rows.map((row) => {
+				return "<tr class=\"is-selected\"><td>" + row.label + "</td><td><span class=\"metric-value\">" + row.value + "</span></td><td><span class=\"metric-note\">" + row.note + "</span></td></tr>";
+			}).join("");
+		}
+
+		function renderBars(active = [], swapping = [], sorted = new Set()) {
+			viz.innerHTML = "";
+			const max = Math.max(...values, 1);
+			values.forEach((v, i) => {
+				const bar = document.createElement("div");
+				bar.className = "bar";
+				bar.style.height = (v / max) * 100 + "%";
+				if (active.includes(i)) bar.classList.add("active");
+				if (swapping.includes(i)) bar.classList.add("swap");
+				if (sorted.has(i)) bar.classList.add("sorted");
+				viz.appendChild(bar);
+			});
+		}
+
+		function sleep(ms) {
+			return new Promise(resolve => setTimeout(resolve, ms));
+		}
+
+		function currentDelay() {
+			return Number(speedRange.value);
+		}
+
+		function giveStepToken() {
+			stepTokens++;
+			if (stepWaitResolver) {
+				const resolve = stepWaitResolver;
+				stepWaitResolver = null;
+				resolve();
+			}
+		}
+
+		async function waitStepTokenIfNeeded() {
+			while (stopRequested) {
+				await new Promise(resolve => {
+					stepWaitResolver = resolve;
+				});
+			}
+			if (!stepMode) {
+				await sleep(currentDelay());
+				return;
+			}
+			if (stepTokens > 0) {
+				stepTokens--;
+				return;
+			}
+			await new Promise(resolve => {
+				stepWaitResolver = resolve;
+			});
+			if (stepTokens > 0) stepTokens--;
+		}
+
+		function renderPseudoCode(lines = []) {
+			pseudoCode.innerHTML = lines.map((line, idx) => {
+				return "<span class=\"code-line\" data-line=\"" + idx + "\">" + line + "</span>";
+			}).join("");
+		}
+
+		function highlightPseudoLine(lineIndex) {
+			const lineEls = pseudoCode.querySelectorAll(".code-line");
+			lineEls.forEach((el, idx) => {
+				if (idx === lineIndex) el.classList.add("active");
+				else el.classList.remove("active");
+			});
+		}
+
+		function updateTrace(lineIndex = null, action = "待命中", detail = "") {
+			const lines = algoMeta[CURRENT_ALGO].pseudo;
+			if (Number.isInteger(lineIndex) && lines[lineIndex]) {
+				traceLine.textContent = String(lineIndex + 1);
+				traceCode.textContent = lines[lineIndex].trim();
+			} else {
+				traceLine.textContent = "-";
+				traceCode.textContent = "-";
+			}
+			traceAction.textContent = action;
+			traceDetail.textContent = detail || "等待下一步操作。";
+		}
+
+		async function drawStep(active = [], swapping = [], sorted = new Set(), codeLine = null, action = "執行中", detail = "") {
+			if (terminateRequested) throw new Error("stopped");
+			if (Number.isInteger(codeLine)) {
+				highlightPseudoLine(codeLine);
+				updateTrace(codeLine, action, detail);
+			}
+			steps++;
+			updateStats();
+			renderBars(active, swapping, sorted);
+			await waitStepTokenIfNeeded();
+			if (terminateRequested) throw new Error("stopped");
+		}
+
+		function swap(i, j) {
+			[values[i], values[j]] = [values[j], values[i]];
+			swaps++;
+		}
+
+		async function bubbleSort() {
+			const sorted = new Set();
+			for (let i = 0; i < values.length - 1; i++) {
+				highlightPseudoLine(0);
+				updateTrace(0, "外層迴圈", "第 " + (i + 1) + " 輪掃描開始。");
+				for (let j = 0; j < values.length - i - 1; j++) {
+					await drawStep([j, j + 1], [], sorted, 1, "內層迴圈", "準備比較 j=" + j + " 與 j+1=" + (j + 1) + "。");
+					comparisons++;
+					await drawStep([j, j + 1], [], sorted, 2, "比較元素", "比較 A[" + j + "] 與 A[" + (j + 1) + "]。");
+					if (values[j] > values[j + 1]) {
+						swap(j, j + 1);
+						await drawStep([j, j + 1], [j, j + 1], sorted, 3, "交換元素", "交換索引 " + j + " 與 " + (j + 1) + "。");
+					}
+				}
+				sorted.add(values.length - 1 - i);
+			}
+			for (let k = 0; k < values.length; k++) sorted.add(k);
+			renderBars([], [], sorted);
+		}
+
+		async function selectionSort() {
+			const sorted = new Set();
+			for (let i = 0; i < values.length - 1; i++) {
+				highlightPseudoLine(0);
+				updateTrace(0, "外層迴圈", "第 " + (i + 1) + " 輪尋找最小值。");
+				let minIdx = i;
+				for (let j = i + 1; j < values.length; j++) {
+					comparisons++;
+					await drawStep([minIdx, j], [], sorted, 3, "比較候選", "minIdx=" + minIdx + "，比較 j=" + j + "。");
+					if (values[j] < values[minIdx]) {
+						minIdx = j;
+						await drawStep([minIdx, i], [], sorted, 3, "更新最小值", "新的最小值索引為 " + minIdx + "。");
+					}
+				}
+				if (minIdx !== i) {
+					swap(i, minIdx);
+					await drawStep([i, minIdx], [i, minIdx], sorted, 4, "交換最小值", "將最小值放到位置 " + i + "。");
+				}
+				sorted.add(i);
+			}
+			sorted.add(values.length - 1);
+			renderBars([], [], sorted);
+		}
+
+		async function insertionSort() {
+			const sorted = new Set([0]);
+			for (let i = 1; i < values.length; i++) {
+				highlightPseudoLine(0);
+				updateTrace(0, "外層迴圈", "處理第 " + (i + 1) + " 個元素的插入位置。");
+				const key = values[i];
+				let j = i - 1;
+				while (j >= 0) {
+					comparisons++;
+					await drawStep([j, j + 1], [], sorted, 3, "比較 key", "比較 A[" + j + "] 與 key。");
+					if (values[j] > key) {
+						values[j + 1] = values[j];
+						swaps++;
+						await drawStep([j, j + 1], [j, j + 1], sorted, 4, "右移元素", "A[" + j + "] 右移到 A[" + (j + 1) + "]。");
+						j--;
+					} else {
+						break;
+					}
+				}
+				values[j + 1] = key;
+				sorted.clear();
+				for (let k = 0; k <= i; k++) sorted.add(k);
+				await drawStep([j + 1], [], sorted, 5, "插入 key", "將 key 放到索引 " + (j + 1) + "。");
+			}
+			for (let k = 0; k < values.length; k++) sorted.add(k);
+			renderBars([], [], sorted);
+		}
+
+		async function quickSortWrapper() {
+			const sorted = new Set();
+
+			async function partition(low, high) {
+				highlightPseudoLine(2);
+				updateTrace(2, "分割區間", "處理區間 [" + low + ", " + high + "]。");
+				const pivot = values[high];
+				let i = low - 1;
+				for (let j = low; j < high; j++) {
+					comparisons++;
+					await drawStep([j, high], [], sorted, 2, "比較 pivot", "比較 A[" + j + "] 與 pivot。 ");
+					if (values[j] < pivot) {
+						i++;
+						if (i !== j) {
+							swap(i, j);
+							await drawStep([i, j], [i, j], sorted, 2, "區間交換", "交換 i=" + i + " 與 j=" + j + "。");
+						}
+					}
+				}
+				if (i + 1 !== high) {
+					swap(i + 1, high);
+					await drawStep([i + 1, high], [i + 1, high], sorted, 2, "放置 pivot", "pivot 放到正確位置 " + (i + 1) + "。");
+				}
+				sorted.add(i + 1);
+				return i + 1;
+			}
+
+			async function quickSort(low, high) {
+				highlightPseudoLine(0);
+				updateTrace(0, "遞迴進入", "遞迴處理區間 [" + low + ", " + high + "]。");
+				if (low >= high) {
+					highlightPseudoLine(1);
+					updateTrace(1, "遞迴返回", "區間長度 <= 1，返回上一層。");
+					if (low === high) sorted.add(low);
+					return;
+				}
+				const pi = await partition(low, high);
+				highlightPseudoLine(3);
+				updateTrace(3, "排序左半部", "處理左區間 [" + low + ", " + (pi - 1) + "]。");
+				await quickSort(low, pi - 1);
+				highlightPseudoLine(4);
+				updateTrace(4, "排序右半部", "處理右區間 [" + (pi + 1) + ", " + high + "]。");
+				await quickSort(pi + 1, high);
+			}
+
+			await quickSort(0, values.length - 1);
+			for (let k = 0; k < values.length; k++) sorted.add(k);
+			renderBars([], [], sorted);
+		}
+
+		function updateAlgoInfo() {
+			const m = algoMeta[CURRENT_ALGO];
+			algoDetail.textContent = m.title + "：" + m.detail;
+			renderPseudoCode(m.pseudo);
+			highlightPseudoLine(null);
+			updateTrace(null, "待命中", "按下開始排序後，這裡會顯示目前步驟說明。");
+			renderComplexityTable();
+		}
+
+		function randomizeData() {
+			values = randValues(Number(sizeRange.value));
+			manualInput.value = values.join(", ");
+			sortCompleted = false;
+			resetStats();
+			renderBars();
+			setStatus("資料已重新洗牌，準備開始。", "ok");
+		}
+
+		function shuffleCurrentOrder() {
+			if (running || values.length < 2) return;
+			for (let i = values.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[values[i], values[j]] = [values[j], values[i]];
+			}
+			manualInput.value = values.join(", ");
+			sortCompleted = false;
+			resetStats();
+			renderBars();
+			setStatus("已重新洗牌（僅調整順序，不改變數字）。", "ok");
+		}
+
+		async function terminateRunForShuffle() {
+			if (!running) return;
+			terminateRequested = true;
+			stopRequested = false;
+			stepMode = false;
+			stepTokens = 0;
+			if (stepWaitResolver) {
+				const resolve = stepWaitResolver;
+				stepWaitResolver = null;
+				resolve();
+			}
+			let guard = 0;
+			while (running && guard < 200) {
+				await sleep(5);
+				guard++;
+			}
+		}
+
+		function parseManualInput(raw) {
+			const matches = String(raw || "").match(/-?\d+/g) || [];
+			const parsed = matches.map(v => Number(v)).filter(v => Number.isFinite(v)).map(v => Math.max(1, Math.min(120, Math.trunc(v))));
+			return parsed;
+		}
+
+		function applyManualInput() {
+			if (running) return;
+			const parsed = parseManualInput(manualInput.value);
+			if (parsed.length < 2) {
+				setStatus("請至少輸入 2 個數字。", "err");
+				return;
+			}
+			values = parsed;
+			sortCompleted = false;
+			if (values.length >= Number(sizeRange.min) && values.length <= Number(sizeRange.max)) {
+				sizeRange.value = String(values.length);
+				sizeVal.textContent = sizeRange.value;
+			}
+			resetStats();
+			renderBars();
+			setStatus("已套用自訂數字到圖像。", "ok");
+		}
+
+		function randomizeInputList() {
+			if (running) return;
+			const list = randValues(Number(sizeRange.value));
+			manualInput.value = list.join(", ");
+			values = list;
+			sortCompleted = false;
+			resetStats();
+			renderBars();
+			setStatus("已產生隨機數字並套用到圖像。", "ok");
+		}
+
+		async function startSort(isStepMode = false) {
+			if (running) return;
+			running = true;
+			sortCompleted = false;
+			stopRequested = false;
+			terminateRequested = false;
+			stepMode = isStepMode;
+			if (!stepMode) stepTokens = 0;
+			resetStats();
+			startBtn.disabled = !stepMode;
+			shuffleBtn.disabled = false;
+			stepBtn.disabled = false;
+			setStatus(stepMode ? "單步模式進行中..." : "排序進行中...", "busy");
+			highlightPseudoLine(0);
+			updateTrace(0, "開始排序", stepMode ? "已進入單步模式，每按一次『單步執行』前進一步。" : "初始化完成，從第一行開始執行。");
+
+			try {
+				if (CURRENT_ALGO === "bubble") await bubbleSort();
+				if (CURRENT_ALGO === "selection") await selectionSort();
+				if (CURRENT_ALGO === "insertion") await insertionSort();
+				if (CURRENT_ALGO === "quick") await quickSortWrapper();
+				if (!stopRequested) setStatus("排序完成！", "ok");
+			} catch (err) {
+				if (String(err && err.message) !== "stopped") {
+					setStatus("發生錯誤，請重試。", "err");
+				}
+			} finally {
+				running = false;
+				startBtn.disabled = false;
+				shuffleBtn.disabled = false;
+				stepBtn.disabled = false;
+				stepMode = false;
+				stepTokens = 0;
+				stepWaitResolver = null;
+				terminateRequested = false;
+				if (!stopRequested) {
+					sortCompleted = true;
+					highlightPseudoLine(null);
+					updateTrace(null, "已完成", "排序流程已完成，可重新洗牌再執行。");
+				}
+			}
+		}
+
+		sizeRange.addEventListener("input", () => {
+			sizeVal.textContent = sizeRange.value;
+			if (!running) randomizeData();
+		});
+
+		speedRange.addEventListener("input", () => {
+			speedVal.textContent = speedRange.value;
+		});
+
+		sortPageSelect.addEventListener("change", () => {
+			const pageByAlgo = {
+				bubble: "bubblesort.html",
+				selection: "selectionsort.html",
+				insertion: "insertionsort.html",
+				quick: "quicksort.html"
+			};
+			const nextPage = pageByAlgo[sortPageSelect.value];
+			if (nextPage) window.location.href = nextPage;
+		});
+
+		startBtn.addEventListener("click", () => {
+			if (running && (stepMode || stopRequested)) {
+				stepMode = false;
+				stopRequested = false;
+				stepTokens = 0;
+				startBtn.disabled = true;
+				setStatus("已切換為自動模式，從目前步驟續跑。", "busy");
+				if (stepWaitResolver) {
+					const resolve = stepWaitResolver;
+					stepWaitResolver = null;
+					resolve();
+				}
+				return;
+			}
+			if (!running) startSort(false);
+		});
+		stepBtn.addEventListener("click", () => {
+			if (!running) {
+				if (sortCompleted) {
+					setStatus("已完成，請重新洗牌或按開始排序重新執行。", "ok");
+					return;
+				}
+				giveStepToken();
+				startSort(true);
+				return;
+			}
+			stepMode = true;
+			stopRequested = false;
+			startBtn.disabled = false;
+			stepBtn.disabled = false;
+			setStatus("已切換為單步模式，按一次前進一步。", "busy");
+			giveStepToken();
+		});
+		applyInputBtn.addEventListener("click", applyManualInput);
+		randomInputBtn.addEventListener("click", randomizeInputList);
+		manualInput.addEventListener("keydown", (evt) => {
+			if (evt.key === "Enter") {
+				evt.preventDefault();
+				applyManualInput();
+			}
+		});
+		shuffleBtn.addEventListener("click", async () => {
+			await terminateRunForShuffle();
+			shuffleCurrentOrder();
+		});
+		stopBtn.addEventListener("click", () => {
+			if (running) {
+				stopRequested = true;
+				startBtn.disabled = false;
+				stepBtn.disabled = false;
+				shuffleBtn.disabled = false;
+				setStatus("已暫停，可按單步或開始排序繼續。", "err");
+				if (stepWaitResolver) {
+					const resolve = stepWaitResolver;
+					stepWaitResolver = null;
+					resolve();
+				}
+			}
+			else setStatus("目前沒有進行中的排序。", "err");
+		});
+
+		updateAlgoInfo();
+		sizeVal.textContent = sizeRange.value;
+		speedVal.textContent = speedRange.value;
+		randomizeData();
+	</script>
+</body>
+</html>
