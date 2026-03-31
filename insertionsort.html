@@ -318,11 +318,11 @@
 		}
 
 		.viz {
-			height: 360px;
+			height: 380px;
 			border-radius: 14px;
 			border: 1px solid #e2e8f0;
 			background: linear-gradient(180deg, #f8fafc, #f1f5f9);
-			padding: 10px;
+			padding: 26px 10px 10px;
 			display: flex;
 			align-items: end;
 			gap: 4px;
@@ -463,7 +463,7 @@
 				grid-template-columns: repeat(2, minmax(0, 1fr));
 			}
 			.viz {
-				height: 250px;
+				height: 300px;
 			}
 			.home-link {
 				top: 10px;
@@ -495,6 +495,7 @@
 							<option value="selection">選擇排序 Selection Sort</option>
 							<option value="insertion" selected>插入排序 Insertion Sort</option>
 							<option value="quick">快速排序 Quick Sort</option>
+							<option value="heap">堆積排序 Heap Sort</option>
 						</select>
 					</div>
 
@@ -752,7 +753,7 @@
 			values.forEach((v, i) => {
 				const bar = document.createElement("div");
 				bar.className = "bar";
-				bar.style.height = (v / max) * 100 + "%";
+				bar.style.height = (v / max) * 88 + "%";
 				if (active.includes(i)) bar.classList.add("active");
 				if (swapping.includes(i)) bar.classList.add("swap");
 				if (sorted.has(i)) bar.classList.add("sorted");
@@ -1105,7 +1106,8 @@
 				bubble: "bubblesort.html",
 				selection: "selectionsort.html",
 				insertion: "insertionsort.html",
-				quick: "quicksort.html"
+				quick: "quicksort.html",
+				heap: "heapsort.html"
 			};
 			const nextPage = pageByAlgo[sortPageSelect.value];
 			if (nextPage) window.location.href = nextPage;

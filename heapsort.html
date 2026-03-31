@@ -492,10 +492,10 @@
 						<label>排序法</label>
 						<select id="sortPageSelect" aria-label="選擇排序法頁面">
 							<option value="bubble">泡沫排序 Bubble Sort</option>
-							<option value="selection" selected>選擇排序 Selection Sort</option>
+							<option value="selection">選擇排序 Selection Sort</option>
 							<option value="insertion">插入排序 Insertion Sort</option>
 							<option value="quick">快速排序 Quick Sort</option>
-							<option value="heap">堆積排序 Heap Sort</option>
+							<option value="heap" selected>堆積排序 Heap Sort</option>
 						</select>
 					</div>
 
@@ -663,10 +663,28 @@
 					"  quickSort(A, l, pivot-1)",
 					"  quickSort(A, pivot+1, r)"
 				]
+			},
+			heap: {
+				title: "堆積排序",
+				detail: "先建立最大堆，再把堆頂最大值依序放到尾端，重建堆直到完成。",
+				best: "O(n log n)",
+				average: "O(n log n)",
+				worst: "O(n log n)",
+				timeComplexity: "最佳 O(n log n) / 平均 O(n log n) / 最壞 O(n log n)",
+				space: "O(1)",
+				stable: "不穩定",
+				timeNote: "時間表現穩定，不受資料分布影響太大",
+				pseudo: [
+					"buildMaxHeap(A)",
+					"for end = n-1 to 1:",
+					"  swap(A[0], A[end])",
+					"  heapify(A, 0, end-1)",
+					"repeat until heap size = 1"
+				]
 			}
 		};
 
-		const CURRENT_ALGO = "selection";
+		const CURRENT_ALGO = "heap";
 		const viz = document.getElementById("viz");
 		const sizeRange = document.getElementById("sizeRange");
 		const speedRange = document.getElementById("speedRange");
@@ -965,6 +983,57 @@
 			renderBars([], [], sorted);
 		}
 
+		async function heapSort() {
+			const sorted = new Set();
+
+			async function heapify(heapSize, root) {
+				let largest = root;
+				while (true) {
+					const left = 2 * largest + 1;
+					const right = left + 1;
+					let next = largest;
+
+					if (left < heapSize) {
+						comparisons++;
+						await drawStep([largest, left], [], sorted, 3, "比較左子節點", "比較 root=" + largest + " 與 left=" + left + "。");
+						if (values[left] > values[next]) next = left;
+					}
+
+					if (right < heapSize) {
+						comparisons++;
+						await drawStep([next, right], [], sorted, 3, "比較右子節點", "比較目前最大索引與 right=" + right + "。");
+						if (values[right] > values[next]) next = right;
+					}
+
+					if (next === largest) break;
+
+					swap(largest, next);
+					await drawStep([largest, next], [largest, next], sorted, 3, "下沉交換", "交換索引 " + largest + " 與 " + next + "，維持最大堆。");
+					largest = next;
+				}
+			}
+
+			highlightPseudoLine(0);
+			updateTrace(0, "建立最大堆", "從最後一個非葉節點開始 heapify。" );
+			for (let i = Math.floor(values.length / 2) - 1; i >= 0; i--) {
+				await heapify(values.length, i);
+			}
+
+			for (let end = values.length - 1; end > 0; end--) {
+				highlightPseudoLine(1);
+				updateTrace(1, "取出最大值", "把堆頂與索引 " + end + " 交換。" );
+				swap(0, end);
+				sorted.add(end);
+				await drawStep([0, end], [0, end], sorted, 2, "交換堆頂", "最大值移到尾端位置 " + end + "。" );
+				highlightPseudoLine(3);
+				updateTrace(3, "重建堆", "對縮小後的堆執行 heapify。" );
+				await heapify(end, 0);
+			}
+
+			sorted.add(0);
+			renderBars([], [], sorted);
+		}
+
 		function updateAlgoInfo() {
 			const m = algoMeta[CURRENT_ALGO];
 			algoDetail.textContent = m.title + "：" + m.detail;
@@ -1070,6 +1139,7 @@
 				if (CURRENT_ALGO === "selection") await selectionSort();
 				if (CURRENT_ALGO === "insertion") await insertionSort();
 				if (CURRENT_ALGO === "quick") await quickSortWrapper();
+				if (CURRENT_ALGO === "heap") await heapSort();
 				if (!stopRequested) setStatus("排序完成！", "ok");
 			} catch (err) {
 				if (String(err && err.message) !== "stopped") {
