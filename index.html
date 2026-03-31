@@ -15,6 +15,7 @@
 			--insertion: #059669;
 			--quick: #e11d48;
 			--heap: #7c3aed;
+			--merge: #0891b2;
 			--shadow: 0 16px 40px rgba(20, 25, 40, 0.16);
 		}
 
@@ -102,7 +103,8 @@
 		}
 
 		.card-link {
-			display: block;
+			display: flex;
+			flex-direction: column;
 			padding: 18px;
 			min-height: 138px;
 			border-radius: 16px;
@@ -119,6 +121,7 @@
 		.card-link:nth-child(3) { animation-delay: 190ms; }
 		.card-link:nth-child(4) { animation-delay: 250ms; }
 		.card-link:nth-child(5) { animation-delay: 310ms; }
+		.card-link:nth-child(6) { animation-delay: 370ms; }
 
 		.card-link:hover {
 			transform: translateY(-4px);
@@ -127,6 +130,7 @@
 
 		.tag {
 			display: inline-block;
+			align-self: flex-start;
 			padding: 4px 10px;
 			border-radius: 999px;
 			font-size: 0.76rem;
@@ -150,7 +154,8 @@
 
 		.card-link small {
 			display: inline-block;
-			margin-top: 12px;
+			margin-top: auto;
+			padding-top: 12px;
 			font-weight: 700;
 			color: #2f3a52;
 		}
@@ -160,12 +165,14 @@
 		.insertion .tag { background: var(--insertion); }
 		.quick .tag { background: var(--quick); }
 		.heap .tag { background: var(--heap); }
+		.merge .tag { background: var(--merge); }
 
 		.bubble:hover { border-color: color-mix(in srgb, var(--bubble), #ffffff 45%); }
 		.selection:hover { border-color: color-mix(in srgb, var(--selection), #ffffff 42%); }
 		.insertion:hover { border-color: color-mix(in srgb, var(--insertion), #ffffff 42%); }
 		.quick:hover { border-color: color-mix(in srgb, var(--quick), #ffffff 42%); }
 		.heap:hover { border-color: color-mix(in srgb, var(--heap), #ffffff 42%); }
+		.merge:hover { border-color: color-mix(in srgb, var(--merge), #ffffff 42%); }
 
 		.intro-overlay {
 			position: fixed;
@@ -221,6 +228,37 @@
 			margin: 10px 0 0;
 			color: #51617b;
 			line-height: 1.7;
+		}
+
+		.mode-switch {
+			margin-top: 12px;
+			display: flex;
+			gap: 8px;
+			flex-wrap: wrap;
+		}
+
+		.mode-pick {
+			border: 1px solid rgba(49, 64, 92, 0.24);
+			background: #fff;
+			padding: 8px 12px;
+			border-radius: 999px;
+			font-size: 0.86rem;
+			font-weight: 700;
+			color: #2f4361;
+			cursor: pointer;
+		}
+
+		.mode-pick.active {
+			color: #fff;
+			border-color: #1d4ed8;
+			background: linear-gradient(120deg, #2563eb, #1d4ed8);
+		}
+
+		.mode-hint {
+			margin: 8px 0 0;
+			font-size: 0.86rem;
+			font-weight: 700;
+			color: #476082;
 		}
 
 		.scene {
@@ -287,6 +325,10 @@
 			transition: left 500ms ease, transform 280ms ease, background-color 280ms ease;
 		}
 
+		.customer.clickable {
+			cursor: pointer;
+		}
+
 		.customer::before {
 			content: "";
 			position: absolute;
@@ -306,6 +348,11 @@
 		.customer.active {
 			transform: translateY(-6px);
 			background: linear-gradient(180deg, #dbeafe, #eff6ff);
+		}
+
+		.customer.selected {
+			outline: 3px solid #1d4ed8;
+			outline-offset: 2px;
 		}
 
 		.intro-foot {
@@ -342,6 +389,15 @@
 			color: #fff;
 			border-color: #1d4ed8;
 			background: linear-gradient(120deg, #2563eb, #1d4ed8);
+		}
+
+		.intro-btn[hidden] {
+			display: none;
+		}
+
+		.intro-btn:disabled {
+			opacity: 0.45;
+			cursor: not-allowed;
 		}
 
 		.home-ready {
@@ -410,6 +466,11 @@
 				<button class="intro-close" id="closeIntroBtn" type="button">關閉動畫</button>
 			</header>
 			<p class="intro-copy">情境: 早餐店出餐口。店員會先把號碼牌排好，再依序叫號，大家就不會混亂。</p>
+			<div class="mode-switch" role="tablist" aria-label="選擇開場互動模式">
+				<button class="mode-pick active" id="manualModeBtn" data-mode="manual" type="button">自己試著排排看</button>
+				<button class="mode-pick" id="autoModeBtn" data-mode="auto" type="button">讓動畫自動播放</button>
+			</div>
+			<p class="mode-hint" id="modeHint">手動模式: 點兩位客人交換位置，排成 1、2、3、4 就能進首頁。</p>
 
 			<section class="scene" aria-live="polite">
 				<p class="scene-text" id="sceneText"></p>
@@ -423,6 +484,7 @@
 				<span class="intro-progress" id="introProgress">步驟 1 / 4</span>
 				<div class="intro-actions">
 					<button class="intro-btn" id="skipIntroBtn" type="button">略過直接看首頁</button>
+					<button class="intro-btn" id="playAutoBtn" type="button" hidden>暫停自動播放</button>
 					<button class="intro-btn primary" id="nextIntroBtn" type="button">下一步</button>
 				</div>
 			</footer>
@@ -434,7 +496,7 @@
 			<section>
 				<h1 class="title">排序法視覺化學習站</h1>
 				<p class="subtitle">選擇一種排序法開始練習，透過動畫觀察比較與交換流程，快速掌握每種演算法的核心概念與特性。</p>
-				<span class="intro-note">5 種排序法入口已整合，支援桌機與手機版</span>
+				<span class="intro-note">6 種排序法入口已整合，簡單輕鬆學排序</span>
 			</section>
 
 			<section class="cards" aria-label="排序法選單">
@@ -472,6 +534,13 @@
 					<p>先建立最大堆再逐步取出最大值，時間複雜度穩定。</p>
 					<small>進入頁面 →</small>
 				</a>
+
+				<a class="card-link merge" href="mergesort.html">
+					<span class="tag">Merge</span>
+					<h2>合併排序</h2>
+					<p>先分割後合併，透過遞迴把小區間逐步整理成有序資料。</p>
+					<small>進入頁面 →</small>
+				</a>
 			</section>
 		</section>
 	</main>
@@ -480,11 +549,15 @@
 		const introOverlay = document.getElementById("introOverlay");
 		const closeIntroBtn = document.getElementById("closeIntroBtn");
 		const skipIntroBtn = document.getElementById("skipIntroBtn");
+		const playAutoBtn = document.getElementById("playAutoBtn");
 		const nextIntroBtn = document.getElementById("nextIntroBtn");
 		const sceneText = document.getElementById("sceneText");
 		const introProgress = document.getElementById("introProgress");
 		const queueStage = document.getElementById("queueStage");
 		const homeMain = document.getElementById("homeMain");
+		const modeHint = document.getElementById("modeHint");
+		const manualModeBtn = document.getElementById("manualModeBtn");
+		const autoModeBtn = document.getElementById("autoModeBtn");
 
 		const steps = [
 			{
@@ -510,36 +583,75 @@
 		];
 
 		let index = 0;
+		let mode = "manual";
+		let manualOrder = [3, 1, 4, 2];
+		let selectedIndices = [];
+		let autoTimer = null;
+		let autoPlaying = false;
 
-		function renderQueue(step) {
+		function isSorted(arr) {
+			for (let i = 1; i < arr.length; i++) {
+				if (arr[i - 1] > arr[i]) return false;
+			}
+			return true;
+		}
+
+		function renderQueue(order, active, clickable) {
 			const leftStart = 14;
 			const gap = window.matchMedia("(max-width: 760px)").matches ? 68 : 76;
 			queueStage.querySelectorAll(".customer").forEach((el) => el.remove());
-			step.order.forEach((number, i) => {
+			order.forEach((number, i) => {
 				const person = document.createElement("div");
-				person.className = "customer" + (step.active.includes(i) ? " active" : "");
+				const activeClass = active.includes(i) ? " active" : "";
+				const selectedClass = selectedIndices.includes(i) ? " selected" : "";
+				const clickableClass = clickable ? " clickable" : "";
+				person.className = "customer" + activeClass + selectedClass + clickableClass;
 				person.style.left = (leftStart + i * gap) + "px";
 				person.innerHTML = "<span>" + number + " 號</span>";
+				if (clickable) {
+					person.addEventListener("click", () => onPickCustomer(i));
+				}
 				queueStage.appendChild(person);
 			});
+		}
+
+		function renderManual() {
+			const done = isSorted(manualOrder);
+			sceneText.textContent = done
+				? "太棒了。你已經把隊伍整理成 1、2、3、4，店員可以順利叫號。"
+				: "手動挑兩位客人交換位置，試著把隊伍排成 1、2、3、4。";
+			introProgress.textContent = done ? "手動挑戰完成" : "手動挑戰進行中";
+			nextIntroBtn.hidden = false;
+			nextIntroBtn.disabled = !done;
+			nextIntroBtn.textContent = "開始進入首頁";
+			playAutoBtn.hidden = true;
+			modeHint.textContent = done
+				? "完成。按下方按鈕即可進入首頁。"
+				: "手動模式: 點兩位客人交換位置，排成 1、2、3、4 就能進首頁。";
+			renderQueue(manualOrder, [], true);
 		}
 
 		function renderStep() {
 			const step = steps[index];
 			sceneText.textContent = step.text;
 			introProgress.textContent = "步驟 " + (index + 1) + " / " + steps.length;
-			renderQueue(step);
-			nextIntroBtn.textContent = index === steps.length - 1 ? "開始進入首頁" : "下一步";
+			renderQueue(step.order, step.active, false);
+			modeHint.textContent = "自動模式: 系統會自動播放生活小劇場。";
+			nextIntroBtn.hidden = true;
+			playAutoBtn.hidden = false;
+			playAutoBtn.textContent = autoPlaying ? "暫停自動播放" : "繼續播放";
 		}
 
-		function finishIntro() {
-			introOverlay.hidden = true;
-			homeMain.classList.remove("home-hidden");
-			homeMain.setAttribute("aria-hidden", "false");
-			window.scrollTo({ top: 0, behavior: "smooth" });
+		function stopAuto() {
+			if (autoTimer) {
+				clearInterval(autoTimer);
+				autoTimer = null;
+			}
+			autoPlaying = false;
+			if (mode === "auto") playAutoBtn.textContent = "繼續播放";
 		}
 
-		function nextStep() {
+		function runAutoTick() {
 			if (index < steps.length - 1) {
 				index += 1;
 				renderStep();
@@ -548,13 +660,85 @@
 			finishIntro();
 		}
 
+		function startAuto() {
+			stopAuto();
+			autoPlaying = true;
+			playAutoBtn.textContent = "暫停自動播放";
+			autoTimer = setInterval(runAutoTick, 2200);
+		}
+
+		function onPickCustomer(pos) {
+			if (mode !== "manual" || isSorted(manualOrder)) return;
+			if (selectedIndices.includes(pos)) {
+				selectedIndices = selectedIndices.filter((idx) => idx !== pos);
+				renderManual();
+				return;
+			}
+			selectedIndices.push(pos);
+			if (selectedIndices.length === 2) {
+				const a = selectedIndices[0];
+				const b = selectedIndices[1];
+				[manualOrder[a], manualOrder[b]] = [manualOrder[b], manualOrder[a]];
+				selectedIndices = [];
+				renderManual();
+				if (isSorted(manualOrder)) finishIntro();
+				return;
+			}
+			renderManual();
+		}
+
+		function setMode(nextMode) {
+			mode = nextMode;
+			manualModeBtn.classList.toggle("active", mode === "manual");
+			autoModeBtn.classList.toggle("active", mode === "auto");
+			manualModeBtn.setAttribute("aria-selected", mode === "manual" ? "true" : "false");
+			autoModeBtn.setAttribute("aria-selected", mode === "auto" ? "true" : "false");
+
+			if (mode === "manual") {
+				stopAuto();
+				selectedIndices = [];
+				renderManual();
+				return;
+			}
+
+			index = 0;
+			renderStep();
+			startAuto();
+		}
+
+		function finishIntro() {
+			stopAuto();
+			introOverlay.hidden = true;
+			homeMain.classList.remove("home-hidden");
+			homeMain.setAttribute("aria-hidden", "false");
+			window.scrollTo({ top: 0, behavior: "smooth" });
+		}
+
+		function nextStep() {
+			if (mode === "manual") {
+				if (isSorted(manualOrder)) finishIntro();
+				else modeHint.textContent = "還沒排好喔，請繼續交換到 1、2、3、4。";
+				return;
+			}
+			runAutoTick();
+		}
+
 		closeIntroBtn.addEventListener("click", finishIntro);
 		skipIntroBtn.addEventListener("click", finishIntro);
 		nextIntroBtn.addEventListener("click", nextStep);
+		playAutoBtn.addEventListener("click", () => {
+			if (autoPlaying) stopAuto();
+			else startAuto();
+		});
+		manualModeBtn.addEventListener("click", () => setMode("manual"));
+		autoModeBtn.addEventListener("click", () => setMode("auto"));
 
-		window.addEventListener("resize", () => renderQueue(steps[index]));
+		window.addEventListener("resize", () => {
+			if (mode === "manual") renderManual();
+			else renderStep();
+		});
 
-		renderStep();
+		setMode("manual");
 	</script>
 </body>
 </html>

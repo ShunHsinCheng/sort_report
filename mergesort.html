@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>合併排序 | 排序法視覺化學習站</title>
+	<style>
+		:root {
+			--bg-a: #fdf6e3;
+			--bg-b: #dbeafe;
+			--card: #ffffff;
+			--ink: #1f2937;
+			--muted: #6b7280;
+			--accent: #0f766e;
+			--accent-2: #ea580c;
+			--good: #16a34a;
+			--warn: #dc2626;
+			--line: #e5e7eb;
+			--shadow: 0 12px 30px rgba(31, 41, 55, 0.12);
+		}
+
+		* { box-sizing: border-box; }
+
+		body {
+			margin: 0;
+			min-height: 100vh;
+			font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+			color: var(--ink);
+			background:
+				radial-gradient(circle at 10% 10%, rgba(15, 118, 110, 0.14), transparent 35%),
+				radial-gradient(circle at 80% 0%, rgba(234, 88, 12, 0.14), transparent 30%),
+				linear-gradient(145deg, var(--bg-a), var(--bg-b));
+			animation: fadeIn 700ms ease-out;
+		}
+
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(6px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		main.container {
+			width: min(1150px, 94vw);
+			margin: 28px auto 36px;
+			display: grid;
+			gap: 18px;
+		}
+
+		.hero {
+			position: relative;
+			overflow: hidden;
+			padding: 22px;
+			border: 1px solid #ffffff;
+			border-radius: 20px;
+			background: linear-gradient(120deg, #ffffffee, #fff8f0ee);
+			box-shadow: var(--shadow);
+		}
+
+		.hero::after {
+			content: "";
+			position: absolute;
+			width: 220px;
+			height: 220px;
+			right: -70px;
+			top: -70px;
+			border-radius: 50%;
+			background: radial-gradient(circle, rgba(15, 118, 110, 0.22), transparent 65%);
+		}
+
+		h1 {
+			margin: 0 0 8px;
+			font-size: clamp(1.5rem, 4vw, 2.2rem);
+			letter-spacing: 0.02em;
+		}
+
+		.subtitle {
+			margin: 0;
+			line-height: 1.55;
+			max-width: 68ch;
+			color: var(--muted);
+		}
+
+		.home-link {
+			position: fixed;
+			top: 14px;
+			right: 14px;
+			z-index: 1000;
+			display: inline-block;
+			padding: 8px 14px;
+			border-radius: 999px;
+			background: var(--accent);
+			color: #fff;
+			text-decoration: none;
+			font-weight: 700;
+			font-size: 0.9rem;
+			transition: transform 120ms ease, background 120ms ease;
+		}
+
+		.home-link:hover {
+			background: #115e59;
+			transform: translateY(-1px);
+		}
+
+		.grid {
+			display: grid;
+			grid-template-columns: 1.05fr 1fr;
+			gap: 18px;
+		}
+
+		.right-stack {
+			display: grid;
+			gap: 18px;
+			align-content: start;
+		}
+
+		.complexity-card { grid-column: 1 / -1; }
+
+		.panel {
+			background: var(--card);
+			border: 1px solid var(--line);
+			border-radius: 18px;
+			padding: 24px;
+			box-shadow: var(--shadow);
+		}
+
+		.controls {
+			display: grid;
+			gap: 20px;
+		}
+
+		.row {
+			display: grid;
+			gap: 12px;
+			padding: 14px 14px;
+			border: 1px solid #eef2f7;
+			border-radius: 12px;
+			background: #fbfdff;
+		}
+
+		.row label {
+			font-weight: 700;
+			font-size: 0.95rem;
+		}
+
+		#manualInput {
+			border: 1px solid #cbd5e1;
+			border-radius: 10px;
+			padding: 12px 13px;
+			font-size: 0.95rem;
+			background: #fff;
+		}
+
+		.input-hint {
+			margin: 2px 0 0;
+			font-size: 0.82rem;
+			color: #64748b;
+		}
+
+		select,
+		input[type="range"],
+		button {
+			width: 100%;
+		}
+
+		select,
+		input[type="range"] { accent-color: var(--accent); }
+
+		select {
+			border: 1px solid #cbd5e1;
+			border-radius: 10px;
+			padding: 12px 13px;
+			font-size: 1rem;
+			background: #fff;
+		}
+
+		.btns {
+			display: grid;
+			grid-template-columns: repeat(5, minmax(0, 1fr));
+			gap: 12px;
+		}
+
+		.inline-btns {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 12px;
+		}
+
+		button {
+			border: 0;
+			border-radius: 10px;
+			padding: 13px 13px;
+			font-weight: 700;
+			cursor: pointer;
+			transition: transform 120ms ease, filter 120ms ease;
+		}
+
+		button:hover { transform: translateY(-1px); }
+		button:active { transform: translateY(0); }
+		button:disabled { cursor: not-allowed; filter: grayscale(0.45); opacity: 0.6; }
+
+		.primary { background: var(--accent); color: #fff; }
+		.secondary { background: #0ea5e9; color: #fff; }
+		.danger { background: var(--accent-2); color: #fff; }
+
+		.stats {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 12px;
+			margin-top: 8px;
+		}
+
+		.stat {
+			border: 1px dashed #d1d5db;
+			border-radius: 10px;
+			padding: 14px;
+			background: #fcfcfc;
+		}
+
+		.stat b {
+			display: block;
+			font-size: 1.15rem;
+			margin-top: 2px;
+		}
+
+		.algo-card h2,
+		.viz-card h2 {
+			margin: 0 0 8px;
+			font-size: 1.12rem;
+		}
+
+		.algo-detail {
+			margin: 0;
+			color: #374151;
+			line-height: 1.6;
+			padding: 10px 12px;
+			border-radius: 10px;
+			background: #f8fafc;
+			border: 1px solid #e2e8f0;
+		}
+
+		.status {
+			margin-top: 10px;
+			font-weight: 700;
+			min-height: 1.4em;
+		}
+
+		.ok { color: var(--good); }
+		.busy { color: #0369a1; }
+		.err { color: var(--warn); }
+
+		.viz {
+			height: 380px;
+			border-radius: 14px;
+			border: 1px solid #e2e8f0;
+			background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+			padding: 26px 10px 10px;
+			display: flex;
+			align-items: end;
+			gap: 4px;
+			overflow: hidden;
+		}
+
+		.bar {
+			flex: 1;
+			min-width: 3px;
+			border-radius: 6px 6px 0 0;
+			background: linear-gradient(180deg, #2dd4bf, #0f766e);
+			transition: height 140ms linear, background-color 120ms linear, transform 120ms linear;
+		}
+
+		.bar.sorted {
+			background: linear-gradient(180deg, #4ade80, #15803d);
+		}
+
+		.bar.merged {
+			background: linear-gradient(180deg, #facc15, #ca8a04);
+		}
+
+		.bar.active {
+			background: linear-gradient(180deg, #fb7185, #e11d48);
+			transform: translateY(-2px);
+		}
+
+		.legend {
+			margin-top: 10px;
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			font-size: 0.88rem;
+			color: #374151;
+		}
+
+		.dot {
+			width: 10px;
+			height: 10px;
+			border-radius: 50%;
+			display: inline-block;
+			margin-right: 6px;
+			vertical-align: middle;
+		}
+
+		.pseudocode {
+			margin-top: 12px;
+			border: 1px solid #e5e7eb;
+			background: #f9fafb;
+			border-radius: 10px;
+			padding: 10px;
+			font-family: "Consolas", "Courier New", monospace;
+			font-size: 0.86rem;
+			line-height: 1.5;
+			color: #374151;
+		}
+
+		.code-title {
+			margin: 0 0 6px;
+			font-size: 0.98rem;
+		}
+
+		.code-line {
+			display: block;
+			padding: 2px 8px;
+			border-radius: 6px;
+			white-space: pre;
+		}
+
+		.code-line.active {
+			background: #fee2e2;
+			color: #991b1b;
+			font-weight: 700;
+		}
+
+		.trace-box {
+			margin-top: 10px;
+			border: 1px dashed #cbd5e1;
+			border-radius: 10px;
+			padding: 10px;
+			background: #fcfcfd;
+		}
+
+		.trace-box h4 {
+			margin: 0 0 8px;
+			font-size: 0.92rem;
+		}
+
+		.trace-grid {
+			display: grid;
+			grid-template-columns: 1fr;
+			gap: 6px;
+			font-size: 0.85rem;
+		}
+
+		.trace-item {
+			display: grid;
+			grid-template-columns: 86px 1fr;
+			align-items: start;
+			gap: 8px;
+			padding: 7px 8px;
+			border-radius: 8px;
+			background: #f1f5f9;
+		}
+
+		.trace-item b {
+			display: inline;
+			font-size: 0.8rem;
+			color: #475569;
+			margin: 0;
+		}
+
+		.trace-detail {
+			display: block;
+			font-size: 0.85rem;
+			color: #334155;
+			line-height: 1.45;
+			min-height: 1.45em;
+			white-space: normal;
+			word-break: break-word;
+		}
+
+		.table-wrap {
+			margin-top: 14px;
+			border: 1px solid #e2e8f0;
+			border-radius: 12px;
+			background: #fff;
+			overflow: hidden;
+		}
+
+		table {
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 0.95rem;
+		}
+
+		thead th {
+			background: #f1f5f9;
+			font-weight: 700;
+			font-size: 0.92rem;
+			letter-spacing: 0.02em;
+		}
+
+		th,
+		td {
+			border-bottom: 1px solid #e5e7eb;
+			padding: 8px 10px;
+			text-align: left;
+			white-space: normal;
+			word-break: break-word;
+			vertical-align: top;
+		}
+
+		tbody tr:last-child td { border-bottom: 0; }
+
+		tbody tr.is-selected {
+			background: #ecfeff;
+		}
+
+		tbody td:first-child {
+			width: 24%;
+			font-weight: 700;
+			background: #f8fafc;
+		}
+
+		tbody td:nth-child(2) {
+			width: 24%;
+		}
+
+		.metric-value {
+			display: block;
+			font-weight: 700;
+			color: #0f172a;
+			margin-bottom: 0;
+		}
+
+		.metric-note {
+			display: block;
+			color: #475569;
+			line-height: 1.55;
+		}
+
+		@media (max-width: 900px) {
+			.grid { grid-template-columns: 1fr; }
+			.stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+			.viz { height: 300px; }
+			.home-link {
+				top: 10px;
+				right: 10px;
+				padding: 7px 12px;
+				font-size: 0.84rem;
+			}
+		}
+
+	</style>
+</head>
+<body>
+	<a class="home-link" href="index.html">回首頁</a>
+	<main class="container">
+		<section class="hero">
+			<h1>合併排序：分治法與穩定排序示範</h1>
+			<p class="subtitle">先把資料切成更小的區間，再把已排序的左右子陣列逐步合併回來。這個頁面可以調整資料量、速度與輸入內容，觀察每一次比較與寫回的位置。</p>
+		</section>
+
+		<section class="grid">
+			<article class="panel algo-card">
+				<h2>控制面板</h2>
+				<div class="controls">
+					<div class="row">
+						<label>排序法</label>
+						<select id="sortPageSelect" aria-label="選擇排序法頁面">
+							<option value="bubble">泡沫排序 Bubble Sort</option>
+							<option value="selection">選擇排序 Selection Sort</option>
+							<option value="insertion">插入排序 Insertion Sort</option>
+							<option value="quick">快速排序 Quick Sort</option>
+							<option value="heap">堆積排序 Heap Sort</option>
+							<option value="merge" selected>合併排序 Merge Sort</option>
+						</select>
+					</div>
+
+					<p id="algoDetail" class="algo-detail"></p>
+
+					<div class="row">
+						<label for="manualInput">自訂數字輸入</label>
+						<input id="manualInput" type="text" placeholder="例如：35, 12, 88, 7, 42" aria-label="輸入排序數字" />
+						<p class="input-hint">可用逗號或空白分隔。輸入後按「套用數字」。</p>
+						<div class="inline-btns">
+							<button id="applyInputBtn" class="secondary" type="button">套用數字</button>
+							<button id="randomInputBtn" class="secondary" type="button">隨機數字</button>
+						</div>
+					</div>
+
+					<div class="row">
+						<label for="sizeRange">資料量：<span id="sizeVal">24</span></label>
+						<input id="sizeRange" type="range" min="8" max="48" value="24" />
+					</div>
+
+					<div class="row">
+						<label for="speedRange">動畫速度：<span id="speedVal">55</span> ms/步</label>
+						<input id="speedRange" type="range" min="8" max="140" value="55" />
+					</div>
+
+					<div class="btns">
+						<button id="startBtn" class="primary">開始排序</button>
+						<button id="stepBtn" class="secondary">單步執行</button>
+						<button id="prevBtn" class="secondary">上一步</button>
+						<button id="shuffleBtn" class="secondary">重新洗牌</button>
+						<button id="stopBtn" class="danger">停止</button>
+					</div>
+
+					<div class="stats" aria-live="polite">
+						<div class="stat">比較次數<b id="cmpCount">0</b></div>
+						<div class="stat">寫入次數<b id="writeCount">0</b></div>
+						<div class="stat">目前步數<b id="stepCount">0</b></div>
+					</div>
+				</div>
+
+				<div id="status" class="status">已就緒，請開始排序。</div>
+			</article>
+
+			<div class="right-stack">
+				<article class="panel viz-card">
+					<h2>即時圖像輔助</h2>
+					<div id="viz" class="viz" aria-label="排序動畫視覺化區域"></div>
+					<div class="legend">
+						<span><i class="dot" style="background:#0f766e"></i>一般資料</span>
+						<span><i class="dot" style="background:#e11d48"></i>目前比較</span>
+						<span><i class="dot" style="background:#ca8a04"></i>合併寫入</span>
+						<span><i class="dot" style="background:#15803d"></i>已排序區間</span>
+					</div>
+				</article>
+
+				<article class="panel">
+					<h3 class="code-title">程式碼追蹤</h3>
+					<div id="pseudoCode" class="pseudocode" aria-label="程式碼追蹤區塊"></div>
+					<div class="trace-box" aria-live="polite">
+						<h4>即時追蹤資訊</h4>
+						<div class="trace-grid">
+							<div class="trace-item"><b>目前行號</b><span id="traceLine">-</span></div>
+							<div class="trace-item"><b>目前語句</b><span id="traceCode">-</span></div>
+							<div class="trace-item"><b>說明</b><span id="traceDetail" class="trace-detail">按下開始排序後，這裡會顯示目前步驟說明。</span></div>
+							<div class="trace-item"><b>動作</b><span id="traceAction">待命中</span></div>
+						</div>
+					</div>
+				</article>
+			</div>
+		</section>
+
+		<article class="panel complexity-card">
+			<h2>複雜度與特性表</h2>
+			<div class="table-wrap" aria-label="排序法比較表格">
+				<table>
+					<thead>
+						<tr>
+							<th>項目</th>
+							<th>複雜度數值</th>
+							<th>說明</th>
+						</tr>
+					</thead>
+					<tbody id="complexityTableBody"></tbody>
+				</table>
+			</div>
+		</article>
+	</main>
+
+	<script>
+		const algoMeta = {
+			merge: {
+				title: "合併排序",
+				detail: "採用分治法切分陣列，再把兩個已排序子陣列合併成更大的有序區間。",
+				best: "O(n log n)",
+				average: "O(n log n)",
+				worst: "O(n log n)",
+				timeComplexity: "最佳 O(n log n) / 平均 O(n log n) / 最壞 O(n log n)",
+				space: "O(n)",
+				spaceExplain: "合併時需要額外陣列保存左右子區間，因此不是原地排序。",
+				stable: "穩定",
+				stableExplain: "當兩個值相等時，會優先保留左側元素的相對順序。",
+				timeNote: "效能穩定，適合需要可預測表現的情境",
+				timeNoteExplain: "不論資料是否接近有序，遞迴切分與合併的成本都維持在 n log n。",
+				pseudo: [
+					"mergeSort(A, l, r)",
+					"  if l >= r: return",
+					"  m = floor((l + r) / 2)",
+					"  mergeSort(A, l, m)",
+					"  mergeSort(A, m + 1, r)",
+					"  merge(A, l, m, r)"
+				]
+			}
+		};
+
+		const CURRENT_ALGO = "merge";
+		const viz = document.getElementById("viz");
+		const sizeRange = document.getElementById("sizeRange");
+		const speedRange = document.getElementById("speedRange");
+		const sortPageSelect = document.getElementById("sortPageSelect");
+		const manualInput = document.getElementById("manualInput");
+		const applyInputBtn = document.getElementById("applyInputBtn");
+		const randomInputBtn = document.getElementById("randomInputBtn");
+		const sizeVal = document.getElementById("sizeVal");
+		const speedVal = document.getElementById("speedVal");
+		const startBtn = document.getElementById("startBtn");
+		const stepBtn = document.getElementById("stepBtn");
+		const prevBtn = document.getElementById("prevBtn");
+		const shuffleBtn = document.getElementById("shuffleBtn");
+		const stopBtn = document.getElementById("stopBtn");
+		const cmpCount = document.getElementById("cmpCount");
+		const writeCount = document.getElementById("writeCount");
+		const stepCount = document.getElementById("stepCount");
+		const algoDetail = document.getElementById("algoDetail");
+		const complexityTableBody = document.getElementById("complexityTableBody");
+		const pseudoCode = document.getElementById("pseudoCode");
+		const traceLine = document.getElementById("traceLine");
+		const traceAction = document.getElementById("traceAction");
+		const traceCode = document.getElementById("traceCode");
+		const traceDetail = document.getElementById("traceDetail");
+		const statusText = document.getElementById("status");
+
+		let values = [];
+		let running = false;
+		let stopRequested = false;
+		let stepMode = false;
+		let stepTokens = 0;
+		let stepWaitResolver = null;
+		let comparisons = 0;
+		let writes = 0;
+		let steps = 0;
+		let mergedIndices = new Set();
+		let pendingAction = null;
+		let historySnapshots = [];
+		let pendingPrevRequest = false;
+
+		function randValues(n) {
+			const arr = [];
+			for (let i = 0; i < n; i++) {
+				arr.push(Math.floor(Math.random() * 95) + 5);
+			}
+			return arr;
+		}
+
+		function setStatus(msg, cls = "") {
+			statusText.textContent = msg;
+			statusText.className = "status" + (cls ? " " + cls : "");
+		}
+
+		function resetStats() {
+			comparisons = 0;
+			writes = 0;
+			steps = 0;
+			updateStats();
+		}
+
+		function updateStats() {
+			cmpCount.textContent = comparisons;
+			writeCount.textContent = writes;
+			stepCount.textContent = steps;
+		}
+
+		function getActivePseudoLine() {
+			const lines = Array.from(pseudoCode.querySelectorAll(".code-line"));
+			const idx = lines.findIndex((el) => el.classList.contains("active"));
+			return idx >= 0 ? idx + 1 : null;
+		}
+
+		function saveSnapshot() {
+			const compare = [];
+			const writing = [];
+			Array.from(viz.children).forEach((bar, idx) => {
+				if (bar.classList.contains("active")) compare.push(idx);
+				if (bar.classList.contains("merged")) writing.push(idx);
+			});
+
+			historySnapshots.push({
+				values: [...values],
+				comparisons,
+				writes,
+				steps,
+				mergedIndices: [...mergedIndices],
+				compare,
+				writing,
+				line: traceLine.textContent,
+				code: traceCode.textContent,
+				action: traceAction.textContent,
+				detail: traceDetail.textContent,
+				pseudoLine: getActivePseudoLine(),
+				statusText: statusText.textContent,
+				statusClass: statusText.className
+			});
+
+			if (historySnapshots.length > 4000) historySnapshots.shift();
+		}
+
+		function restoreSnapshot(snapshot) {
+			values = [...snapshot.values];
+			comparisons = snapshot.comparisons;
+			writes = snapshot.writes;
+			steps = snapshot.steps;
+			mergedIndices = new Set(snapshot.mergedIndices);
+			updateStats();
+			renderBars(snapshot.compare, snapshot.writing, true);
+			updateTrace(snapshot.pseudoLine, snapshot.action, snapshot.code, snapshot.detail);
+			statusText.textContent = snapshot.statusText;
+			statusText.className = snapshot.statusClass;
+		}
+
+		function goPreviousStep() {
+			if (running) {
+				pendingPrevRequest = true;
+				pendingAction = null;
+				stopRequested = true;
+				stepMode = true;
+				syncControlState();
+				grantStep();
+				setStatus("正在回到上一步並切換單步模式...", "busy");
+				return;
+			}
+
+			if (historySnapshots.length <= 1) {
+				setStatus("已是最前一步。", "err");
+				return;
+			}
+
+			historySnapshots.pop();
+			restoreSnapshot(historySnapshots[historySnapshots.length - 1]);
+			stepMode = true;
+			syncControlState();
+			setStatus("已回到上一步，已切換為單步模式。", "busy");
+		}
+
+		function renderComplexityTable() {
+			const m = algoMeta[CURRENT_ALGO];
+			const rows = [
+				{ label: "最佳情況", value: m.best, note: "左右兩側合併時仍需完整掃描一次，因此最佳情況與平均情況相同。" },
+				{ label: "平均情況", value: m.average, note: "每一層遞迴都會做一次線性合併，總成本為 n log n。" },
+				{ label: "最壞情況", value: m.worst, note: "即使資料完全亂序，分治與合併成本依舊維持 n log n。" },
+				{ label: "時間複雜度", value: m.timeComplexity, note: "遞迴樹深度約為 log n，而每層合併總量為 n。" },
+				{ label: "空間複雜度", value: m.space, note: m.spaceExplain },
+				{ label: "穩定性", value: m.stable, note: m.stableExplain },
+				{ label: "時間特性", value: m.timeNote, note: m.timeNoteExplain }
+			];
+
+			complexityTableBody.innerHTML = rows.map((row) => {
+				return `<tr><td>${row.label}</td><td><span class="metric-value">${row.value}</span></td><td><span class="metric-note">${row.note}</span></td></tr>`;
+			}).join("");
+		}
+
+		function renderPseudo(activeLine = null) {
+			const lines = algoMeta[CURRENT_ALGO].pseudo;
+			pseudoCode.innerHTML = lines.map((line, index) => {
+				const cls = activeLine === index + 1 ? "code-line active" : "code-line";
+				return `<span class="${cls}">${line}</span>`;
+			}).join("");
+		}
+
+		function renderBars(compare = [], writing = [], skipSnapshot = false) {
+			viz.innerHTML = "";
+			const max = Math.max(...values, 1);
+			values.forEach((value, index) => {
+				const bar = document.createElement("div");
+				bar.className = "bar";
+				bar.style.height = (value / max) * 88 + "%";
+				if (mergedIndices.has(index)) bar.classList.add("sorted");
+				if (writing.includes(index)) bar.classList.add("merged");
+				if (compare.includes(index)) bar.classList.add("active");
+				viz.appendChild(bar);
+			});
+			if (!skipSnapshot) saveSnapshot();
+		}
+
+		function updateTrace(line, action, code, detail) {
+			traceLine.textContent = line == null ? "-" : String(line);
+			traceAction.textContent = action || "待命中";
+			traceCode.textContent = code || "-";
+			traceDetail.textContent = detail || "-";
+			renderPseudo(line);
+		}
+
+		function syncSizeLabel() {
+			sizeVal.textContent = sizeRange.value;
+		}
+
+		function syncSpeedLabel() {
+			speedVal.textContent = speedRange.value;
+		}
+
+		function syncControlState() {
+			if (!running) {
+				startBtn.disabled = false;
+				stepBtn.disabled = false;
+				prevBtn.disabled = false;
+				shuffleBtn.disabled = false;
+				stopBtn.disabled = true;
+				applyInputBtn.disabled = false;
+				randomInputBtn.disabled = false;
+				return;
+			}
+
+			if (stepMode) {
+				startBtn.disabled = false;
+				stepBtn.disabled = false;
+				prevBtn.disabled = false;
+				shuffleBtn.disabled = false;
+				stopBtn.disabled = false;
+				applyInputBtn.disabled = false;
+				randomInputBtn.disabled = false;
+				return;
+			}
+
+			startBtn.disabled = true;
+			stepBtn.disabled = false;
+			prevBtn.disabled = false;
+			shuffleBtn.disabled = true;
+			stopBtn.disabled = false;
+			applyInputBtn.disabled = true;
+			randomInputBtn.disabled = true;
+		}
+
+		function randomizeData() {
+			values = randValues(Number(sizeRange.value));
+			mergedIndices = new Set();
+			resetStats();
+			renderBars();
+			updateTrace(null, "重新產生資料", "-", "已隨機生成新資料，準備進行合併排序。 ");
+			setStatus("已重新產生隨機資料。", "ok");
+			historySnapshots = [];
+			saveSnapshot();
+		}
+
+		function parseManualInput() {
+			const parsed = manualInput.value
+				.split(/[\s,，]+/)
+				.map((item) => Number(item.trim()))
+				.filter((item) => Number.isFinite(item));
+
+			if (parsed.length < 2) {
+				setStatus("請至少輸入 2 個有效數字。", "err");
+				return;
+			}
+
+			values = parsed.slice(0, Number(sizeRange.max));
+			sizeRange.value = String(values.length);
+			syncSizeLabel();
+			mergedIndices = new Set();
+			resetStats();
+			renderBars();
+			updateTrace(null, "套用自訂數字", "-", "已載入手動輸入的資料，現在可以開始排序。 ");
+			setStatus("已套用自訂數字。", "ok");
+			historySnapshots = [];
+			saveSnapshot();
+		}
+
+		function sleep(ms) {
+			return new Promise((resolve) => setTimeout(resolve, ms));
+		}
+
+		function grantStep() {
+			stepTokens += 1;
+			if (stepWaitResolver) {
+				const resolve = stepWaitResolver;
+				stepWaitResolver = null;
+				resolve();
+			}
+		}
+
+		function runOrQueueAction(action, msg) {
+			if (!running) {
+				action();
+				return;
+			}
+
+			pendingAction = action;
+			stopRequested = true;
+			stepMode = false;
+			syncControlState();
+			grantStep();
+			setStatus(msg || "已要求停止目前流程。", "busy");
+		}
+
+		async function waitForProgress() {
+			if (stopRequested) return false;
+			if (!stepMode) {
+				await sleep(Number(speedRange.value));
+				return !stopRequested;
+			}
+
+			if (stepTokens > 0) {
+				stepTokens -= 1;
+				return !stopRequested;
+			}
+
+			setStatus("單步模式中，請按「單步執行」繼續。", "busy");
+			await new Promise((resolve) => {
+				stepWaitResolver = resolve;
+			});
+			stepWaitResolver = null;
+			if (stopRequested) return false;
+			if (stepTokens > 0) stepTokens -= 1;
+			return !stopRequested;
+		}
+
+		async function merge(lo, mid, hi, depth) {
+			const left = values.slice(lo, mid + 1);
+			const right = values.slice(mid + 1, hi + 1);
+			let i = 0;
+			let j = 0;
+			let k = lo;
+
+			updateTrace(6, "開始合併", `merge(${lo}, ${mid}, ${hi})`, `將左半 ${left.length} 筆與右半 ${right.length} 筆資料合併。`);
+
+			while (i < left.length && j < right.length) {
+				if (stopRequested) return false;
+				comparisons += 1;
+				steps += 1;
+				updateStats();
+				updateTrace(6, "比較左右子陣列", `left[${i}] vs right[${j}]`, `比較 ${left[i]} 與 ${right[j]}，準備寫入位置 ${k}。`);
+				renderBars([lo + i, mid + 1 + j], []);
+				if (!(await waitForProgress())) return false;
+
+				if (left[i] <= right[j]) {
+					values[k] = left[i];
+					i += 1;
+				} else {
+					values[k] = right[j];
+					j += 1;
+				}
+
+				writes += 1;
+				steps += 1;
+				updateStats();
+				updateTrace(6, "寫回主陣列", `A[${k}] = ...`, `已把下一個最小值放入索引 ${k}。`);
+				renderBars([], [k]);
+				if (!(await waitForProgress())) return false;
+				k += 1;
+			}
+
+			while (i < left.length) {
+				if (stopRequested) return false;
+				values[k] = left[i];
+				writes += 1;
+				steps += 1;
+				updateStats();
+				updateTrace(6, "補上左半剩餘資料", `A[${k}] = left[${i}]`, `右半已用完，直接把左半剩餘元素補回去。`);
+				renderBars([], [k]);
+				if (!(await waitForProgress())) return false;
+				i += 1;
+				k += 1;
+			}
+
+			while (j < right.length) {
+				if (stopRequested) return false;
+				values[k] = right[j];
+				writes += 1;
+				steps += 1;
+				updateStats();
+				updateTrace(6, "補上右半剩餘資料", `A[${k}] = right[${j}]`, `左半已用完，直接把右半剩餘元素補回去。`);
+				renderBars([], [k]);
+				if (!(await waitForProgress())) return false;
+				j += 1;
+				k += 1;
+			}
+
+			for (let index = lo; index <= hi; index += 1) {
+				mergedIndices.add(index);
+			}
+
+			steps += 1;
+			updateStats();
+			updateTrace(6, "合併完成", `merge(${lo}, ${mid}, ${hi})`, `區間 ${lo} 到 ${hi} 已完成排序。`);
+			renderBars();
+			if (!(await waitForProgress())) return false;
+			return true;
+		}
+
+		async function mergeSort(lo, hi, depth = 0) {
+			if (stopRequested) return false;
+			if (lo >= hi) {
+				mergedIndices.add(lo);
+				renderBars();
+				return true;
+			}
+
+			const mid = Math.floor((lo + hi) / 2);
+			steps += 1;
+			updateStats();
+			updateTrace(3, "分割區間", `mergeSort(${lo}, ${hi})`, `先把範圍 ${lo} 到 ${hi} 拆成兩半。`);
+			renderBars();
+			if (!(await waitForProgress())) return false;
+
+			if (!(await mergeSort(lo, mid, depth + 1))) return false;
+			if (!(await mergeSort(mid + 1, hi, depth + 1))) return false;
+			if (!(await merge(lo, mid, hi, depth + 1))) return false;
+			return true;
+		}
+
+		async function runSort() {
+			if (running) return;
+			running = true;
+			stopRequested = false;
+			mergedIndices = new Set();
+			syncControlState();
+			setStatus(stepMode ? "單步模式已啟動。" : "開始執行合併排序。", "busy");
+			updateTrace(1, "開始", "mergeSort(A, 0, n-1)", "排序流程已啟動。");
+			historySnapshots = [];
+			saveSnapshot();
+
+			try {
+				const success = await mergeSort(0, values.length - 1);
+				if (success && !stopRequested) {
+					mergedIndices = new Set(values.map((_, index) => index));
+					renderBars();
+					updateTrace(6, "已完成", "全部區間", "所有資料都已完成合併排序。 ");
+					setStatus("排序完成。", "ok");
+				} else if (stopRequested) {
+					setStatus("排序已停止。", "err");
+				}
+			} finally {
+				running = false;
+				stopRequested = false;
+				stepMode = false;
+				stepTokens = 0;
+				if (stepWaitResolver) {
+					const resolve = stepWaitResolver;
+					stepWaitResolver = null;
+					resolve();
+				}
+				if (pendingPrevRequest) {
+					pendingPrevRequest = false;
+					if (historySnapshots.length > 1) {
+						historySnapshots.pop();
+						restoreSnapshot(historySnapshots[historySnapshots.length - 1]);
+						stepMode = true;
+						setStatus("已回到上一步，已切換為單步模式。", "busy");
+					}
+					syncControlState();
+					return;
+				}
+
+				syncControlState();
+				if (pendingAction) {
+					const action = pendingAction;
+					pendingAction = null;
+					action();
+				}
+			}
+		}
+
+		sizeRange.addEventListener("input", () => {
+			syncSizeLabel();
+			if (!running) randomizeData();
+		});
+
+		speedRange.addEventListener("input", () => {
+			syncSpeedLabel();
+		});
+
+		sortPageSelect.addEventListener("change", () => {
+			const pageByAlgo = {
+				bubble: "bubblesort.html",
+				selection: "selectionsort.html",
+				insertion: "insertionsort.html",
+				quick: "quicksort.html",
+				heap: "heapsort.html",
+				merge: "mergesort.html"
+			};
+			const nextPage = pageByAlgo[sortPageSelect.value];
+			if (nextPage) window.location.href = nextPage;
+		});
+
+		startBtn.addEventListener("click", () => {
+			if (running) {
+				stepMode = false;
+				syncControlState();
+				grantStep();
+				setStatus("已切換為自動模式，從目前步驟續跑。", "busy");
+				return;
+			}
+			stepMode = false;
+			runSort();
+		});
+
+		stepBtn.addEventListener("click", () => {
+			if (!running) {
+				stepMode = true;
+				syncControlState();
+				runSort();
+				grantStep();
+				setStatus("單步模式已啟動。", "busy");
+				return;
+			}
+			stepMode = true;
+			syncControlState();
+			grantStep();
+			setStatus("已前進一步。", "busy");
+		});
+
+		prevBtn.addEventListener("click", () => {
+			goPreviousStep();
+		});
+
+		shuffleBtn.addEventListener("click", () => {
+			runOrQueueAction(() => {
+				randomizeData();
+			}, "已要求停止，稍後會重新洗牌。");
+		});
+
+		stopBtn.addEventListener("click", () => {
+			if (!running) return;
+			stopRequested = true;
+			stepMode = false;
+			syncControlState();
+			grantStep();
+			setStatus("已要求停止，等目前步驟結束後中止。", "err");
+		});
+
+		applyInputBtn.addEventListener("click", () => {
+			runOrQueueAction(() => {
+				parseManualInput();
+			}, "已要求停止，稍後會套用輸入數字。");
+		});
+
+		randomInputBtn.addEventListener("click", () => {
+			runOrQueueAction(() => {
+				manualInput.value = randValues(Number(sizeRange.value)).join(", ");
+				parseManualInput();
+			}, "已要求停止，稍後會產生並套用隨機數字。");
+		});
+
+		syncSizeLabel();
+		syncSpeedLabel();
+		renderComplexityTable();
+		renderPseudo(1);
+		algoDetail.textContent = algoMeta[CURRENT_ALGO].detail;
+		values = randValues(Number(sizeRange.value));
+		historySnapshots = [];
+		renderBars();
+		updateTrace(1, "待命中", "mergeSort(A, 0, n-1)", "按下開始排序後，就能逐步觀察合併過程。");
+		saveSnapshot();
+		syncControlState();
+	</script>
+</body>
+</html>

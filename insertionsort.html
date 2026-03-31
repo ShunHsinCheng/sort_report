@@ -180,7 +180,7 @@
 
 		.btns {
 			display: grid;
-			grid-template-columns: repeat(4, minmax(0, 1fr));
+			grid-template-columns: repeat(5, minmax(0, 1fr));
 			gap: 12px;
 		}
 
@@ -495,6 +495,7 @@
 							<option value="selection">選擇排序 Selection Sort</option>
 							<option value="insertion" selected>插入排序 Insertion Sort</option>
 							<option value="quick">快速排序 Quick Sort</option>
+							<option value="merge">合併排序 Merge Sort</option>
 							<option value="heap">堆積排序 Heap Sort</option>
 						</select>
 					</div>
@@ -524,6 +525,7 @@
 					<div class="btns">
 						<button id="startBtn" class="primary">開始排序</button>
 						<button id="stepBtn" class="secondary">單步執行</button>
+						<button id="prevBtn" class="secondary">上一步</button>
 						<button id="shuffleBtn" class="secondary">重新洗牌</button>
 						<button id="stopBtn" class="danger">停止</button>
 					</div>
@@ -557,9 +559,9 @@
 						<h4>即時追蹤資訊</h4>
 						<div class="trace-grid">
 							<div class="trace-item"><b>目前行號</b><span id="traceLine">-</span></div>
-							<div class="trace-item"><b>動作</b><span id="traceAction">待命中</span></div>
 							<div class="trace-item"><b>目前語句</b><span id="traceCode">-</span></div>
 							<div class="trace-item"><b>說明</b><span id="traceDetail" class="trace-detail">按下開始排序後，這裡會顯示目前步驟說明。</span></div>
+							<div class="trace-item"><b>動作</b><span id="traceAction">待命中</span></div>
 						</div>
 					</div>
 				</article>
@@ -678,6 +680,7 @@
 		const speedVal = document.getElementById("speedVal");
 		const startBtn = document.getElementById("startBtn");
 		const stepBtn = document.getElementById("stepBtn");
+		const prevBtn = document.getElementById("prevBtn");
 		const shuffleBtn = document.getElementById("shuffleBtn");
 		const stopBtn = document.getElementById("stopBtn");
 		const cmpCount = document.getElementById("cmpCount");
@@ -703,6 +706,8 @@
 		let comparisons = 0;
 		let swaps = 0;
 		let steps = 0;
+		let historySnapshots = [];
+		let pendingPrevRequest = false;
 
 		function randValues(n) {
 			const arr = [];
@@ -728,6 +733,89 @@
 			cmpCount.textContent = comparisons;
 			swapCount.textContent = swaps;
 			stepCount.textContent = steps;
+		}
+
+		function getActivePseudoLine() {
+			const active = pseudoCode.querySelector(".code-line.active");
+			if (!active) return null;
+			const idx = Number(active.dataset.line);
+			return Number.isInteger(idx) ? idx : null;
+		}
+
+		function saveSnapshot() {
+			const active = [];
+			const swapping = [];
+			const sorted = [];
+			Array.from(viz.children).forEach((bar, idx) => {
+				if (bar.classList.contains("active")) active.push(idx);
+				if (bar.classList.contains("swap")) swapping.push(idx);
+				if (bar.classList.contains("sorted")) sorted.push(idx);
+			});
+
+			historySnapshots.push({
+				values: [...values],
+				comparisons,
+				swaps,
+				steps,
+				active,
+				swapping,
+				sorted,
+				line: traceLine.textContent,
+				code: traceCode.textContent,
+				action: traceAction.textContent,
+				detail: traceDetail.textContent,
+				pseudoLine: getActivePseudoLine(),
+				statusText: statusText.textContent,
+				statusClass: statusText.className
+			});
+
+			if (historySnapshots.length > 4000) {
+				historySnapshots.shift();
+			}
+		}
+
+		function restoreSnapshot(snapshot) {
+			values = [...snapshot.values];
+			comparisons = snapshot.comparisons;
+			swaps = snapshot.swaps;
+			steps = snapshot.steps;
+			updateStats();
+			renderBars(snapshot.active, snapshot.swapping, new Set(snapshot.sorted));
+			highlightPseudoLine(snapshot.pseudoLine);
+			traceLine.textContent = snapshot.line;
+			traceCode.textContent = snapshot.code;
+			traceAction.textContent = snapshot.action;
+			traceDetail.textContent = snapshot.detail;
+			statusText.textContent = snapshot.statusText;
+			statusText.className = snapshot.statusClass;
+		}
+
+		function goPreviousStep() {
+			if (running) {
+				pendingPrevRequest = true;
+				terminateRequested = true;
+				stopRequested = false;
+				stepMode = true;
+				stepTokens = 0;
+				if (stepWaitResolver) {
+					const resolve = stepWaitResolver;
+					stepWaitResolver = null;
+					resolve();
+				}
+				setStatus("正在回到上一步並切換單步模式...", "busy");
+				return;
+			}
+
+			if (historySnapshots.length <= 1) {
+				setStatus("已是最前一步。", "err");
+				return;
+			}
+
+			historySnapshots.pop();
+			restoreSnapshot(historySnapshots[historySnapshots.length - 1]);
+			stepMode = true;
+			sortCompleted = false;
+			setStatus("已回到上一步，已切換為單步模式。", "busy");
 		}
 
 		function renderComplexityTable() {
@@ -834,6 +922,7 @@
 			steps++;
 			updateStats();
 			renderBars(active, swapping, sorted);
+			saveSnapshot();
 			await waitStepTokenIfNeeded();
 			if (terminateRequested) throw new Error("stopped");
 		}
@@ -981,6 +1070,8 @@
 			resetStats();
 			renderBars();
 			setStatus("資料已重新洗牌，準備開始。", "ok");
+			historySnapshots = [];
+			saveSnapshot();
 		}
 
 		function shuffleCurrentOrder() {
@@ -994,6 +1085,8 @@
 			resetStats();
 			renderBars();
 			setStatus("已重新洗牌（僅調整順序，不改變數字）。", "ok");
+			historySnapshots = [];
+			saveSnapshot();
 		}
 
 		async function terminateRunForShuffle() {
@@ -1036,6 +1129,8 @@
 			resetStats();
 			renderBars();
 			setStatus("已套用自訂數字到圖像。", "ok");
+			historySnapshots = [];
+			saveSnapshot();
 		}
 
 		function randomizeInputList() {
@@ -1047,6 +1142,8 @@
 			resetStats();
 			renderBars();
 			setStatus("已產生隨機數字並套用到圖像。", "ok");
+			historySnapshots = [];
+			saveSnapshot();
 		}
 
 		async function startSort(isStepMode = false) {
@@ -1064,6 +1161,8 @@
 			setStatus(stepMode ? "單步模式進行中..." : "排序進行中...", "busy");
 			highlightPseudoLine(0);
 			updateTrace(0, "開始排序", stepMode ? "已進入單步模式，每按一次『單步執行』前進一步。" : "初始化完成，從第一行開始執行。");
+			historySnapshots = [];
+			saveSnapshot();
 
 			try {
 				if (CURRENT_ALGO === "bubble") await bubbleSort();
@@ -1084,10 +1183,21 @@
 				stepTokens = 0;
 				stepWaitResolver = null;
 				terminateRequested = false;
+				if (pendingPrevRequest) {
+					pendingPrevRequest = false;
+					if (historySnapshots.length > 1) {
+						historySnapshots.pop();
+						restoreSnapshot(historySnapshots[historySnapshots.length - 1]);
+						stepMode = true;
+						sortCompleted = false;
+						setStatus("已回到上一步，已切換為單步模式。", "busy");
+					}
+				}
 				if (!stopRequested) {
 					sortCompleted = true;
 					highlightPseudoLine(null);
 					updateTrace(null, "已完成", "排序流程已完成，可重新洗牌再執行。");
+					saveSnapshot();
 				}
 			}
 		}
@@ -1107,6 +1217,7 @@
 				selection: "selectionsort.html",
 				insertion: "insertionsort.html",
 				quick: "quicksort.html",
+				merge: "mergesort.html",
 				heap: "heapsort.html"
 			};
 			const nextPage = pageByAlgo[sortPageSelect.value];
@@ -1146,8 +1257,12 @@
 			setStatus("已切換為單步模式，按一次前進一步。", "busy");
 			giveStepToken();
 		});
+		prevBtn.addEventListener("click", goPreviousStep);
 		applyInputBtn.addEventListener("click", applyManualInput);
-		randomInputBtn.addEventListener("click", randomizeInputList);
+		randomInputBtn.addEventListener("click", async () => {
+			await terminateRunForShuffle();
+			randomizeInputList();
+		});
 		manualInput.addEventListener("keydown", (evt) => {
 			if (evt.key === "Enter") {
 				evt.preventDefault();
