@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="460" viewBox="0 0 980 460" role="img" aria-labelledby="title desc">
+  <title id="title">六種排序法比較（N=1000 基準，log10 尺度）</title>
+  <desc id="desc">Bubble, Selection, Insertion, Merge, Quick, Heap 六種排序法在不同資料規模下的時間增加倍數比較折線圖，右側附有顏色圖例。</desc>
+  <rect width="100%" height="100%" fill="#ffffff"/>
+
+  <style>
+    .axis { stroke: #333; stroke-width: 1.5; }
+    .grid { stroke: #e6e6e6; stroke-width: 1; }
+    .label { fill: #222; font-family: "Segoe UI", Arial, sans-serif; font-size: 14px; }
+    .tick { fill: #444; font-family: "Segoe UI", Arial, sans-serif; font-size: 12px; }
+    .title { fill: #111; font-family: "Segoe UI", Arial, sans-serif; font-size: 22px; font-weight: 700; }
+    .subtitle { fill: #555; font-family: "Segoe UI", Arial, sans-serif; font-size: 13px; }
+    .legend { fill: #222; font-family: "Segoe UI", Arial, sans-serif; font-size: 14px; }
+    .line { fill: none; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+    .point { stroke: #fff; stroke-width: 1.5; }
+  </style>
+
+  <text x="70" y="34" class="title">六種排序法比較（N=1000 基準，log10 尺度）</text>
+  <text x="70" y="56" class="subtitle">y 軸為 log10(時間增加倍數)，可避免後段快速成長時曲線擠在一起</text>
+
+  <!-- Plot area -->
+  <!-- Margins: left 80, right 240, top 70, bottom 60 -->
+  <line x1="80" y1="380" x2="760" y2="380" class="axis"/>
+  <line x1="80" y1="380" x2="80" y2="70" class="axis"/>
+
+  <!-- Grid and y ticks -->
+  <line x1="80" y1="380" x2="760" y2="380" class="grid"/>
+  <line x1="80" y1="308.1" x2="760" y2="308.1" class="grid"/>
+  <line x1="80" y1="236.2" x2="760" y2="236.2" class="grid"/>
+  <line x1="80" y1="164.3" x2="760" y2="164.3" class="grid"/>
+  <line x1="80" y1="92.4" x2="760" y2="92.4" class="grid"/>
+  <text x="25" y="384" class="tick">0.0</text>
+  <text x="25" y="312.1" class="tick">1.0</text>
+  <text x="25" y="240.2" class="tick">2.0</text>
+  <text x="25" y="168.3" class="tick">3.0</text>
+  <text x="25" y="96.4" class="tick">4.0</text>
+  <text x="18" y="74" class="label" transform="rotate(-90 18,74)">log10(時間增加倍數)</text>
+
+  <!-- X-axis labels -->
+  <g>
+    <line x1="80" y1="380" x2="80" y2="386" class="axis"/>
+    <text x="66" y="405" class="tick">1000</text>
+    <line x1="193.3" y1="380" x2="193.3" y2="386" class="axis"/>
+    <text x="173" y="405" class="tick">2000</text>
+    <line x1="306.7" y1="380" x2="306.7" y2="386" class="axis"/>
+    <text x="286" y="405" class="tick">5000</text>
+    <line x1="420" y1="380" x2="420" y2="386" class="axis"/>
+    <text x="397" y="405" class="tick">10000</text>
+    <line x1="533.3" y1="380" x2="533.3" y2="386" class="axis"/>
+    <text x="509" y="405" class="tick">20000</text>
+    <line x1="646.7" y1="380" x2="646.7" y2="386" class="axis"/>
+    <text x="622" y="405" class="tick">50000</text>
+    <line x1="760" y1="380" x2="760" y2="386" class="axis"/>
+    <text x="729" y="405" class="tick">100000</text>
+  </g>
+
+  <!-- Lines -->
+  <polyline class="line" stroke="#1f77b4" points="80,380 193.3,336.8 306.7,279.4 420,235.6 533.3,192.4 646.7,135.2 760,92.0"/>
+  <polyline class="line" stroke="#ff7f0e" points="80,380 193.3,338.2 306.7,281.6 420,236.9 533.3,193.9 646.7,136.4 760,94.2"/>
+  <polyline class="line" stroke="#2ca02c" points="80,380 193.3,333.9 306.7,276.1 420,230.4 533.3,188.1 646.7,126.8 760,88.0"/>
+  <polyline class="line" stroke="#d62728" points="80,380 193.3,336.8 306.7,311.5 420,297.7 533.3,269.0 646.7,240.6 760,215.6"/>
+  <polyline class="line" stroke="#9467bd" points="80,380 193.3,336.8 306.7,279.4 420,235.1 533.3,191.7 646.7,134.5 760,90.0"/>
+  <polyline class="line" stroke="#7f7f7f" points="80,380 193.3,349.0 306.7,317.4 420,289.4 533.3,269.0 646.7,240.6 760,217.3"/>
+
+  <!-- Points -->
+  <g>
+    <!-- Bubble -->
+    <circle cx="80" cy="380" r="4" fill="#1f77b4" class="point"/>
+    <circle cx="193.3" cy="336.8" r="4" fill="#1f77b4" class="point"/>
+    <circle cx="306.7" cy="279.4" r="4" fill="#1f77b4" class="point"/>
+    <circle cx="420" cy="235.6" r="4" fill="#1f77b4" class="point"/>
+    <circle cx="533.3" cy="192.4" r="4" fill="#1f77b4" class="point"/>
+    <circle cx="646.7" cy="135.2" r="4" fill="#1f77b4" class="point"/>
+    <circle cx="760" cy="92.0" r="4" fill="#1f77b4" class="point"/>
+
+    <!-- Selection -->
+    <circle cx="80" cy="380" r="4" fill="#ff7f0e" class="point"/>
+    <circle cx="193.3" cy="338.2" r="4" fill="#ff7f0e" class="point"/>
+    <circle cx="306.7" cy="281.6" r="4" fill="#ff7f0e" class="point"/>
+    <circle cx="420" cy="236.9" r="4" fill="#ff7f0e" class="point"/>
+    <circle cx="533.3" cy="193.9" r="4" fill="#ff7f0e" class="point"/>
+    <circle cx="646.7" cy="136.4" r="4" fill="#ff7f0e" class="point"/>
+    <circle cx="760" cy="94.2" r="4" fill="#ff7f0e" class="point"/>
+
+    <!-- Insertion -->
+    <circle cx="80" cy="380" r="4" fill="#2ca02c" class="point"/>
+    <circle cx="193.3" cy="333.9" r="4" fill="#2ca02c" class="point"/>
+    <circle cx="306.7" cy="276.1" r="4" fill="#2ca02c" class="point"/>
+    <circle cx="420" cy="230.4" r="4" fill="#2ca02c" class="point"/>
+    <circle cx="533.3" cy="188.1" r="4" fill="#2ca02c" class="point"/>
+    <circle cx="646.7" cy="126.8" r="4" fill="#2ca02c" class="point"/>
+    <circle cx="760" cy="88.0" r="4" fill="#2ca02c" class="point"/>
+
+    <!-- Merge -->
+    <circle cx="80" cy="380" r="4" fill="#d62728" class="point"/>
+    <circle cx="193.3" cy="336.8" r="4" fill="#d62728" class="point"/>
+    <circle cx="306.7" cy="311.5" r="4" fill="#d62728" class="point"/>
+    <circle cx="420" cy="297.7" r="4" fill="#d62728" class="point"/>
+    <circle cx="533.3" cy="269.0" r="4" fill="#d62728" class="point"/>
+    <circle cx="646.7" cy="240.6" r="4" fill="#d62728" class="point"/>
+    <circle cx="760" cy="215.6" r="4" fill="#d62728" class="point"/>
+
+    <!-- Quick -->
+    <circle cx="80" cy="380" r="4" fill="#9467bd" class="point"/>
+    <circle cx="193.3" cy="336.8" r="4" fill="#9467bd" class="point"/>
+    <circle cx="306.7" cy="279.4" r="4" fill="#9467bd" class="point"/>
+    <circle cx="420" cy="235.1" r="4" fill="#9467bd" class="point"/>
+    <circle cx="533.3" cy="191.7" r="4" fill="#9467bd" class="point"/>
+    <circle cx="646.7" cy="134.5" r="4" fill="#9467bd" class="point"/>
+    <circle cx="760" cy="90.0" r="4" fill="#9467bd" class="point"/>
+
+    <!-- Heap -->
+    <circle cx="80" cy="380" r="4" fill="#7f7f7f" class="point"/>
+    <circle cx="193.3" cy="349.0" r="4" fill="#7f7f7f" class="point"/>
+    <circle cx="306.7" cy="317.4" r="4" fill="#7f7f7f" class="point"/>
+    <circle cx="420" cy="289.4" r="4" fill="#7f7f7f" class="point"/>
+    <circle cx="533.3" cy="269.0" r="4" fill="#7f7f7f" class="point"/>
+    <circle cx="646.7" cy="240.6" r="4" fill="#7f7f7f" class="point"/>
+    <circle cx="760" cy="217.3" r="4" fill="#7f7f7f" class="point"/>
+
+    <!-- Bubble redrawn on top to keep the blue line visible -->
+    <polyline class="line" stroke="#1f77b4" stroke-width="5" points="80,380 193.3,336.8 306.7,279.4 420,235.6 533.3,192.4 646.7,135.2 760,92.0"/>
+    <circle cx="80" cy="380" r="5" fill="#1f77b4" class="point"/>
+    <circle cx="193.3" cy="336.8" r="5" fill="#1f77b4" class="point"/>
+    <circle cx="306.7" cy="279.4" r="5" fill="#1f77b4" class="point"/>
+    <circle cx="420" cy="235.6" r="5" fill="#1f77b4" class="point"/>
+    <circle cx="533.3" cy="192.4" r="5" fill="#1f77b4" class="point"/>
+    <circle cx="646.7" cy="135.2" r="5" fill="#1f77b4" class="point"/>
+    <circle cx="760" cy="92.0" r="5" fill="#1f77b4" class="point"/>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(800,92)">
+    <text x="0" y="0" class="label" font-weight="700">圖例</text>
+    <line x1="0" y1="24" x2="34" y2="24" stroke="#1f77b4" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="17" cy="24" r="4" fill="#1f77b4" class="point"/>
+    <text x="46" y="29" class="legend">Bubble：氣泡排序</text>
+
+    <line x1="0" y1="54" x2="34" y2="54" stroke="#ff7f0e" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="17" cy="54" r="4" fill="#ff7f0e" class="point"/>
+    <text x="46" y="59" class="legend">Selection：選擇排序</text>
+
+    <line x1="0" y1="84" x2="34" y2="84" stroke="#2ca02c" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="17" cy="84" r="4" fill="#2ca02c" class="point"/>
+    <text x="46" y="89" class="legend">Insertion：插入排序</text>
+
+    <line x1="0" y1="114" x2="34" y2="114" stroke="#d62728" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="17" cy="114" r="4" fill="#d62728" class="point"/>
+    <text x="46" y="119" class="legend">Merge：合併排序</text>
+
+    <line x1="0" y1="144" x2="34" y2="144" stroke="#9467bd" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="17" cy="144" r="4" fill="#9467bd" class="point"/>
+    <text x="46" y="149" class="legend">Quick：快速排序</text>
+
+    <line x1="0" y1="174" x2="34" y2="174" stroke="#7f7f7f" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="17" cy="174" r="4" fill="#7f7f7f" class="point"/>
+    <text x="46" y="179" class="legend">Heap：堆積排序</text>
+  </g>
+</svg>
