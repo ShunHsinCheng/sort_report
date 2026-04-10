@@ -16,7 +16,6 @@
   </style>
 
   <text x="70" y="34" class="title">六種排序法比較（N=1000 基準，log10 尺度）</text>
-  <text x="70" y="56" class="subtitle">y 軸為 log10(時間增加倍數)，可避免後段快速成長時曲線擠在一起</text>
 
   <!-- Plot area -->
   <!-- Margins: left 80, right 240, top 70, bottom 60 -->
