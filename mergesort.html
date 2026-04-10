@@ -623,6 +623,7 @@
 		let mergedIndices = new Set();
 		let pendingAction = null;
 		let historySnapshots = [];
+		let historyCursor = -1;
 		let pendingPrevRequest = false;
 
 		function randValues(n) {
@@ -658,6 +659,10 @@
 		}
 
 		function saveSnapshot() {
+			if (historyCursor >= 0 && historyCursor < historySnapshots.length - 1) {
+				historySnapshots = historySnapshots.slice(0, historyCursor + 1);
+			}
+
 			const compare = [];
 			const writing = [];
 			Array.from(viz.children).forEach((bar, idx) => {
@@ -683,6 +688,7 @@
 			});
 
 			if (historySnapshots.length > 4000) historySnapshots.shift();
+			historyCursor = historySnapshots.length - 1;
 		}
 
 		function restoreSnapshot(snapshot) {
@@ -710,13 +716,13 @@
 				return;
 			}
 
-			if (historySnapshots.length <= 1) {
+			if (historyCursor <= 0) {
 				setStatus("已是最前一步。", "err");
 				return;
 			}
 
-			historySnapshots.pop();
-			restoreSnapshot(historySnapshots[historySnapshots.length - 1]);
+			historyCursor -= 1;
+			restoreSnapshot(historySnapshots[historyCursor]);
 			stepMode = true;
 			syncControlState();
 			setStatus("已回到上一步，已切換為單步模式。", "busy");
@@ -818,6 +824,7 @@
 			updateTrace(null, "重新產生資料", "-", "已隨機生成新資料，準備進行合併排序。 ");
 			setStatus("已重新產生隨機資料。", "ok");
 			historySnapshots = [];
+			historyCursor = -1;
 			saveSnapshot();
 		}
 
@@ -841,6 +848,7 @@
 			updateTrace(null, "套用自訂數字", "-", "已載入手動輸入的資料，現在可以開始排序。 ");
 			setStatus("已套用自訂數字。", "ok");
 			historySnapshots = [];
+			historyCursor = -1;
 			saveSnapshot();
 		}
 
@@ -987,16 +995,24 @@
 			return true;
 		}
 
-		async function runSort() {
+		async function runSort(options = {}) {
+			const { resume = false } = options;
 			if (running) return;
 			running = true;
 			stopRequested = false;
-			mergedIndices = new Set();
+			if (!resume) {
+				mergedIndices = new Set();
+			}
 			syncControlState();
-			setStatus(stepMode ? "單步模式已啟動。" : "開始執行合併排序。", "busy");
-			updateTrace(1, "開始", "mergeSort(A, 0, n-1)", "排序流程已啟動。");
-			historySnapshots = [];
-			saveSnapshot();
+			if (!resume) {
+				setStatus(stepMode ? "單步模式已啟動。" : "開始執行合併排序。", "busy");
+				updateTrace(1, "開始", "mergeSort(A, 0, n-1)", "排序流程已啟動。");
+				historySnapshots = [];
+				historyCursor = -1;
+				saveSnapshot();
+			} else {
+				setStatus(stepMode ? "已從目前步驟繼續單步執行。" : "已從目前步驟續跑。", "busy");
+			}
 
 			try {
 				const success = await mergeSort(0, values.length - 1);
@@ -1020,9 +1036,9 @@
 				}
 				if (pendingPrevRequest) {
 					pendingPrevRequest = false;
-					if (historySnapshots.length > 1) {
-						historySnapshots.pop();
-						restoreSnapshot(historySnapshots[historySnapshots.length - 1]);
+					if (historyCursor > 0) {
+						historyCursor -= 1;
+						restoreSnapshot(historySnapshots[historyCursor]);
 						stepMode = true;
 						setStatus("已回到上一步，已切換為單步模式。", "busy");
 					}
@@ -1070,16 +1086,25 @@
 				return;
 			}
 			stepMode = false;
-			runSort();
+			runSort({ resume: true });
 		});
 
 		stepBtn.addEventListener("click", () => {
 			if (!running) {
+				if (historyCursor >= 0 && historyCursor < historySnapshots.length - 1) {
+					historyCursor += 1;
+					restoreSnapshot(historySnapshots[historyCursor]);
+					stepMode = true;
+					syncControlState();
+					setStatus("已前進一步。", "busy");
+					return;
+				}
+
 				stepMode = true;
 				syncControlState();
-				runSort();
+				runSort({ resume: true });
 				grantStep();
-				setStatus("單步模式已啟動。", "busy");
+				setStatus("已從目前步驟前進一步。", "busy");
 				return;
 			}
 			stepMode = true;
@@ -1127,6 +1152,7 @@
 		algoDetail.textContent = algoMeta[CURRENT_ALGO].detail;
 		values = randValues(Number(sizeRange.value));
 		historySnapshots = [];
+		historyCursor = -1;
 		renderBars();
 		updateTrace(1, "待命中", "mergeSort(A, 0, n-1)", "按下開始排序後，就能逐步觀察合併過程。");
 		saveSnapshot();
