@@ -612,6 +612,9 @@
 		const statusText = document.getElementById("status");
 
 		let values = [];
+		let baseValues = [];
+		let stepGenerator = null;
+		let sortFinished = false;
 		let running = false;
 		let stopRequested = false;
 		let stepMode = false;
@@ -684,7 +687,8 @@
 				detail: traceDetail.textContent,
 				pseudoLine: getActivePseudoLine(),
 				statusText: statusText.textContent,
-				statusClass: statusText.className
+				statusClass: statusText.className,
+				sortFinished
 			});
 
 			if (historySnapshots.length > 4000) historySnapshots.shift();
@@ -697,6 +701,7 @@
 			writes = snapshot.writes;
 			steps = snapshot.steps;
 			mergedIndices = new Set(snapshot.mergedIndices);
+			sortFinished = Boolean(snapshot.sortFinished);
 			updateStats();
 			renderBars(snapshot.compare, snapshot.writing, true);
 			updateTrace(snapshot.pseudoLine, snapshot.action, snapshot.code, snapshot.detail);
@@ -816,16 +821,159 @@
 			randomInputBtn.disabled = true;
 		}
 
-		function randomizeData() {
-			values = randValues(Number(sizeRange.value));
+		function createMergeSortGenerator(sourceValues) {
+			const arr = [...sourceValues];
+
+			function currentStep(step) {
+				return {
+					...step,
+					values: [...arr]
+				};
+			}
+
+			function* merge(lo, mid, hi) {
+				const left = arr.slice(lo, mid + 1);
+				const right = arr.slice(mid + 1, hi + 1);
+				let i = 0;
+				let j = 0;
+				let k = lo;
+
+				yield currentStep({
+					line: 6,
+					action: "開始合併",
+					code: `merge(${lo}, ${mid}, ${hi})`,
+					detail: `將左半 ${left.length} 筆與右半 ${right.length} 筆資料合併。`,
+					compare: [],
+					writing: [],
+					compareDelta: 0,
+					writeDelta: 0
+				});
+
+				while (i < left.length && j < right.length) {
+					yield currentStep({
+						line: 6,
+						action: "比較左右子陣列",
+						code: `left[${i}] vs right[${j}]`,
+						detail: `比較 ${left[i]} 與 ${right[j]}，準備寫入位置 ${k}。`,
+						compare: [lo + i, mid + 1 + j],
+						writing: [],
+						compareDelta: 1,
+						writeDelta: 0
+					});
+
+					if (left[i] <= right[j]) {
+						arr[k] = left[i];
+						i += 1;
+					} else {
+						arr[k] = right[j];
+						j += 1;
+					}
+
+					yield currentStep({
+						line: 6,
+						action: "寫回主陣列",
+						code: `A[${k}] = ...`,
+						detail: `已把下一個最小值放入索引 ${k}。`,
+						compare: [],
+						writing: [k],
+						compareDelta: 0,
+						writeDelta: 1
+					});
+					k += 1;
+				}
+
+				while (i < left.length) {
+					arr[k] = left[i];
+					yield currentStep({
+						line: 6,
+						action: "補上左半剩餘資料",
+						code: `A[${k}] = left[${i}]`,
+						detail: "右半已用完，直接把左半剩餘元素補回去。",
+						compare: [],
+						writing: [k],
+						compareDelta: 0,
+						writeDelta: 1
+					});
+					i += 1;
+					k += 1;
+				}
+
+				while (j < right.length) {
+					arr[k] = right[j];
+					yield currentStep({
+						line: 6,
+						action: "補上右半剩餘資料",
+						code: `A[${k}] = right[${j}]`,
+						detail: "左半已用完，直接把右半剩餘元素補回去。",
+						compare: [],
+						writing: [k],
+						compareDelta: 0,
+						writeDelta: 1
+					});
+					j += 1;
+					k += 1;
+				}
+
+				yield currentStep({
+					line: 6,
+					action: "合併完成",
+					code: `merge(${lo}, ${mid}, ${hi})`,
+					detail: `區間 ${lo} 到 ${hi} 已完成排序。`,
+					compare: [],
+					writing: [],
+					compareDelta: 0,
+					writeDelta: 0,
+					mergedRange: [lo, hi]
+				});
+			}
+
+			function* split(lo, hi) {
+				if (lo >= hi) return;
+				const mid = Math.floor((lo + hi) / 2);
+				yield currentStep({
+					line: 3,
+					action: "分割區間",
+					code: `mergeSort(${lo}, ${hi})`,
+					detail: `先把範圍 ${lo} 到 ${hi} 拆成兩半。`,
+					compare: [],
+					writing: [],
+					compareDelta: 0,
+					writeDelta: 0
+				});
+
+				yield* split(lo, mid);
+				yield* split(mid + 1, hi);
+				yield* merge(lo, mid, hi);
+			}
+
+			return split(0, arr.length - 1);
+		}
+
+		function initializeDataset(nextValues, action, detail, statusMsg) {
+			values = [...nextValues];
+			baseValues = [...nextValues];
+			stepGenerator = createMergeSortGenerator(baseValues);
+			sortFinished = false;
 			mergedIndices = new Set();
+			stepMode = false;
+			stepTokens = 0;
 			resetStats();
-			renderBars();
-			updateTrace(null, "重新產生資料", "-", "已隨機生成新資料，準備進行合併排序。 ");
-			setStatus("已重新產生隨機資料。", "ok");
 			historySnapshots = [];
 			historyCursor = -1;
+			renderBars([], [], true);
+			updateTrace(1, action, "mergeSort(A, 0, n-1)", detail);
+			setStatus(statusMsg, "ok");
 			saveSnapshot();
+			syncControlState();
+		}
+
+		function randomizeData() {
+			initializeDataset(
+				randValues(Number(sizeRange.value)),
+				"重新產生資料",
+				"已隨機生成新資料，準備進行合併排序。",
+				"已重新產生隨機資料。"
+			);
 		}
 
 		function parseManualInput() {
@@ -839,17 +987,15 @@
 				return;
 			}
 
-			values = parsed.slice(0, Number(sizeRange.max));
-			sizeRange.value = String(values.length);
+			const trimmed = parsed.slice(0, Number(sizeRange.max));
+			sizeRange.value = String(trimmed.length);
 			syncSizeLabel();
-			mergedIndices = new Set();
-			resetStats();
-			renderBars();
-			updateTrace(null, "套用自訂數字", "-", "已載入手動輸入的資料，現在可以開始排序。 ");
-			setStatus("已套用自訂數字。", "ok");
-			historySnapshots = [];
-			historyCursor = -1;
-			saveSnapshot();
+			initializeDataset(
+				trimmed,
+				"套用自訂數字",
+				"已載入手動輸入的資料，現在可以開始排序。",
+				"已套用自訂數字。"
+			);
 		}
 
 		function sleep(ms) {
@@ -901,97 +1047,43 @@
 			return !stopRequested;
 		}
 
-		async function merge(lo, mid, hi, depth) {
-			const left = values.slice(lo, mid + 1);
-			const right = values.slice(mid + 1, hi + 1);
-			let i = 0;
-			let j = 0;
-			let k = lo;
-
-			updateTrace(6, "開始合併", `merge(${lo}, ${mid}, ${hi})`, `將左半 ${left.length} 筆與右半 ${right.length} 筆資料合併。`);
-
-			while (i < left.length && j < right.length) {
-				if (stopRequested) return false;
-				comparisons += 1;
-				steps += 1;
-				updateStats();
-				updateTrace(6, "比較左右子陣列", `left[${i}] vs right[${j}]`, `比較 ${left[i]} 與 ${right[j]}，準備寫入位置 ${k}。`);
-				renderBars([lo + i, mid + 1 + j], []);
-				if (!(await waitForProgress())) return false;
-
-				if (left[i] <= right[j]) {
-					values[k] = left[i];
-					i += 1;
-				} else {
-					values[k] = right[j];
-					j += 1;
+		function applyGeneratedStep(step) {
+			values = [...step.values];
+			if (step.mergedRange) {
+				for (let index = step.mergedRange[0]; index <= step.mergedRange[1]; index += 1) {
+					mergedIndices.add(index);
 				}
-
-				writes += 1;
-				steps += 1;
-				updateStats();
-				updateTrace(6, "寫回主陣列", `A[${k}] = ...`, `已把下一個最小值放入索引 ${k}。`);
-				renderBars([], [k]);
-				if (!(await waitForProgress())) return false;
-				k += 1;
 			}
 
-			while (i < left.length) {
-				if (stopRequested) return false;
-				values[k] = left[i];
-				writes += 1;
-				steps += 1;
-				updateStats();
-				updateTrace(6, "補上左半剩餘資料", `A[${k}] = left[${i}]`, `右半已用完，直接把左半剩餘元素補回去。`);
-				renderBars([], [k]);
-				if (!(await waitForProgress())) return false;
-				i += 1;
-				k += 1;
-			}
-
-			while (j < right.length) {
-				if (stopRequested) return false;
-				values[k] = right[j];
-				writes += 1;
-				steps += 1;
-				updateStats();
-				updateTrace(6, "補上右半剩餘資料", `A[${k}] = right[${j}]`, `左半已用完，直接把右半剩餘元素補回去。`);
-				renderBars([], [k]);
-				if (!(await waitForProgress())) return false;
-				j += 1;
-				k += 1;
-			}
-
-			for (let index = lo; index <= hi; index += 1) {
-				mergedIndices.add(index);
-			}
-
+			comparisons += step.compareDelta || 0;
+			writes += step.writeDelta || 0;
 			steps += 1;
 			updateStats();
-			updateTrace(6, "合併完成", `merge(${lo}, ${mid}, ${hi})`, `區間 ${lo} 到 ${hi} 已完成排序。`);
-			renderBars();
-			if (!(await waitForProgress())) return false;
-			return true;
+			updateTrace(step.line, step.action, step.code, step.detail);
+			renderBars(step.compare || [], step.writing || [], true);
 		}
 
-		async function mergeSort(lo, hi, depth = 0) {
-			if (stopRequested) return false;
-			if (lo >= hi) {
-				mergedIndices.add(lo);
-				renderBars();
+		function advanceOneStep() {
+			if (historyCursor >= 0 && historyCursor < historySnapshots.length - 1) {
+				historyCursor += 1;
+				restoreSnapshot(historySnapshots[historyCursor]);
 				return true;
 			}
 
-			const mid = Math.floor((lo + hi) / 2);
-			steps += 1;
-			updateStats();
-			updateTrace(3, "分割區間", `mergeSort(${lo}, ${hi})`, `先把範圍 ${lo} 到 ${hi} 拆成兩半。`);
-			renderBars();
-			if (!(await waitForProgress())) return false;
+			if (sortFinished || !stepGenerator) return false;
 
-			if (!(await mergeSort(lo, mid, depth + 1))) return false;
-			if (!(await mergeSort(mid + 1, hi, depth + 1))) return false;
-			if (!(await merge(lo, mid, hi, depth + 1))) return false;
+			const next = stepGenerator.next();
+			if (next.done) {
+				sortFinished = true;
+				mergedIndices = new Set(values.map((_, index) => index));
+				renderBars([], [], true);
+				updateTrace(6, "已完成", "全部區間", "所有資料都已完成合併排序。");
+				saveSnapshot();
+				return false;
+			}
+
+			applyGeneratedStep(next.value);
+			saveSnapshot();
 			return true;
 		}
 
@@ -1000,34 +1092,33 @@
 			if (running) return;
 			running = true;
 			stopRequested = false;
-			if (!resume) {
-				mergedIndices = new Set();
-			}
 			syncControlState();
-			if (!resume) {
-				setStatus(stepMode ? "單步模式已啟動。" : "開始執行合併排序。", "busy");
-				updateTrace(1, "開始", "mergeSort(A, 0, n-1)", "排序流程已啟動。");
-				historySnapshots = [];
-				historyCursor = -1;
-				saveSnapshot();
-			} else {
+
+			if (resume) {
 				setStatus(stepMode ? "已從目前步驟繼續單步執行。" : "已從目前步驟續跑。", "busy");
+			} else {
+				setStatus(stepMode ? "單步模式已啟動。" : "開始執行合併排序。", "busy");
 			}
 
+			let firstTick = true;
 			try {
-				const success = await mergeSort(0, values.length - 1);
-				if (success && !stopRequested) {
-					mergedIndices = new Set(values.map((_, index) => index));
-					renderBars();
-					updateTrace(6, "已完成", "全部區間", "所有資料都已完成合併排序。 ");
-					setStatus("排序完成。", "ok");
-				} else if (stopRequested) {
+				while (!stopRequested) {
+					if (stepMode || !firstTick) {
+						if (!(await waitForProgress())) break;
+					}
+					const moved = advanceOneStep();
+					if (!moved) break;
+					firstTick = false;
+				}
+
+				if (stopRequested) {
 					setStatus("排序已停止。", "err");
+				} else if (sortFinished) {
+					setStatus("排序完成。", "ok");
 				}
 			} finally {
 				running = false;
 				stopRequested = false;
-				stepMode = false;
 				stepTokens = 0;
 				if (stepWaitResolver) {
 					const resolve = stepWaitResolver;
@@ -1085,6 +1176,7 @@
 				setStatus("已切換為自動模式，從目前步驟續跑。", "busy");
 				return;
 			}
+
 			stepMode = false;
 			runSort({ resume: true });
 		});
@@ -1100,13 +1192,19 @@
 					return;
 				}
 
+				if (sortFinished) {
+					setStatus("排序已完成，沒有下一步。", "ok");
+					return;
+				}
+
 				stepMode = true;
 				syncControlState();
-				runSort({ resume: true });
 				grantStep();
+				runSort({ resume: true });
 				setStatus("已從目前步驟前進一步。", "busy");
 				return;
 			}
+
 			stepMode = true;
 			syncControlState();
 			grantStep();
@@ -1150,13 +1248,12 @@
 		renderComplexityTable();
 		renderPseudo(1);
 		algoDetail.textContent = algoMeta[CURRENT_ALGO].detail;
-		values = randValues(Number(sizeRange.value));
-		historySnapshots = [];
-		historyCursor = -1;
-		renderBars();
-		updateTrace(1, "待命中", "mergeSort(A, 0, n-1)", "按下開始排序後，就能逐步觀察合併過程。");
-		saveSnapshot();
-		syncControlState();
+		initializeDataset(
+			randValues(Number(sizeRange.value)),
+			"待命中",
+			"按下開始排序後，就能逐步觀察合併過程。",
+			"已就緒，請開始排序。"
+		);
 	</script>
 </body>
 </html>

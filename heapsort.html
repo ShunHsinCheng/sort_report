@@ -725,6 +725,7 @@
 		let swaps = 0;
 		let steps = 0;
 		let historySnapshots = [];
+		let historyCursor = -1;
 		let pendingPrevRequest = false;
 
 		function randValues(n) {
@@ -761,6 +762,10 @@
 		}
 
 		function saveSnapshot() {
+			if (historyCursor >= 0 && historyCursor < historySnapshots.length - 1) {
+				historySnapshots = historySnapshots.slice(0, historyCursor + 1);
+			}
+
 			const active = [];
 			const swapping = [];
 			const sorted = [];
@@ -790,6 +795,7 @@
 			if (historySnapshots.length > 4000) {
 				historySnapshots.shift();
 			}
+			historyCursor = historySnapshots.length - 1;
 		}
 
 		function restoreSnapshot(snapshot) {
@@ -811,10 +817,8 @@
 		function goPreviousStep() {
 			if (running) {
 				pendingPrevRequest = true;
-				terminateRequested = true;
-				stopRequested = false;
+				stopRequested = true;
 				stepMode = true;
-				stepTokens = 0;
 				if (stepWaitResolver) {
 					const resolve = stepWaitResolver;
 					stepWaitResolver = null;
@@ -824,13 +828,13 @@
 				return;
 			}
 
-			if (historySnapshots.length <= 1) {
+			if (historyCursor <= 0) {
 				setStatus("已是最前一步。", "err");
 				return;
 			}
 
-			historySnapshots.pop();
-			restoreSnapshot(historySnapshots[historySnapshots.length - 1]);
+			historyCursor -= 1;
+			restoreSnapshot(historySnapshots[historyCursor]);
 			stepMode = true;
 			sortCompleted = false;
 			setStatus("已回到上一步，已切換為單步模式。", "busy");
@@ -886,6 +890,17 @@
 
 		async function waitStepTokenIfNeeded() {
 			while (stopRequested) {
+				if (pendingPrevRequest) {
+					pendingPrevRequest = false;
+					if (historyCursor <= 0) {
+						setStatus("已是最前一步。", "err");
+					} else {
+						historyCursor -= 1;
+						restoreSnapshot(historySnapshots[historyCursor]);
+						sortCompleted = false;
+						setStatus("已回到上一步，已切換為單步模式。", "busy");
+					}
+				}
 				await new Promise(resolve => {
 					stepWaitResolver = resolve;
 				});
@@ -1140,6 +1155,7 @@
 			renderBars();
 			setStatus("資料已重新洗牌，準備開始。", "ok");
 			historySnapshots = [];
+			historyCursor = -1;
 			saveSnapshot();
 		}
 
@@ -1155,6 +1171,7 @@
 			renderBars();
 			setStatus("已重新洗牌（僅調整順序，不改變數字）。", "ok");
 			historySnapshots = [];
+			historyCursor = -1;
 			saveSnapshot();
 		}
 
@@ -1199,6 +1216,7 @@
 			renderBars();
 			setStatus("已套用自訂數字到圖像。", "ok");
 			historySnapshots = [];
+			historyCursor = -1;
 			saveSnapshot();
 		}
 
@@ -1212,6 +1230,7 @@
 			renderBars();
 			setStatus("已產生隨機數字並套用到圖像。", "ok");
 			historySnapshots = [];
+			historyCursor = -1;
 			saveSnapshot();
 		}
 
@@ -1231,6 +1250,7 @@
 			highlightPseudoLine(0);
 			updateTrace(0, "開始排序", stepMode ? "已進入單步模式，每按一次『單步執行』前進一步。" : "初始化完成，從第一行開始執行。");
 			historySnapshots = [];
+			historyCursor = -1;
 			saveSnapshot();
 
 			try {
@@ -1253,16 +1273,7 @@
 				stepTokens = 0;
 				stepWaitResolver = null;
 				terminateRequested = false;
-				if (pendingPrevRequest) {
-					pendingPrevRequest = false;
-					if (historySnapshots.length > 1) {
-						historySnapshots.pop();
-						restoreSnapshot(historySnapshots[historySnapshots.length - 1]);
-						stepMode = true;
-						sortCompleted = false;
-						setStatus("已回到上一步，已切換為單步模式。", "busy");
-					}
-				}
+				pendingPrevRequest = false;
 				if (!stopRequested) {
 					sortCompleted = true;
 					highlightPseudoLine(null);
@@ -1296,6 +1307,10 @@
 
 		startBtn.addEventListener("click", () => {
 			if (running && (stepMode || stopRequested)) {
+				if (historyCursor >= 0 && historyCursor < historySnapshots.length - 1) {
+					historyCursor = historySnapshots.length - 1;
+					restoreSnapshot(historySnapshots[historyCursor]);
+				}
 				stepMode = false;
 				stopRequested = false;
 				stepTokens = 0;
@@ -1312,12 +1327,26 @@
 		});
 		stepBtn.addEventListener("click", () => {
 			if (!running) {
+				if (historyCursor >= 0 && historyCursor < historySnapshots.length - 1) {
+					historyCursor += 1;
+					restoreSnapshot(historySnapshots[historyCursor]);
+					stepMode = true;
+					sortCompleted = false;
+					setStatus("已前進一步。", "busy");
+					return;
+				}
 				if (sortCompleted) {
 					setStatus("已完成，請重新洗牌或按開始排序重新執行。", "ok");
 					return;
 				}
 				giveStepToken();
 				startSort(true);
+				return;
+			}
+			if (historyCursor >= 0 && historyCursor < historySnapshots.length - 1) {
+				historyCursor += 1;
+				restoreSnapshot(historySnapshots[historyCursor]);
+				setStatus("已前進一步。", "busy");
 				return;
 			}
 			stepMode = true;
